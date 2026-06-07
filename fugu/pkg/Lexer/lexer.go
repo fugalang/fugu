@@ -41,6 +41,10 @@ func (lex *Lexer) NextToken() token.Token {
 	lex.tokStartLine = lex.pos.Line
 	lex.tokStartColumn = lex.pos.Column
 
+	if lex.curPos >= len(lex.input) {
+		return lex.NewToken(token.EOF)
+	}
+
 	if unicode.IsSpace(lex.rn) {
 		for unicode.IsSpace(lex.rn) {
 			lex.advance()

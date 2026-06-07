@@ -14,7 +14,7 @@ const (
 	FLOATING   // 12.3
 	STRING     // "abc"
 	T_STRING   // "hello ${x}"
-	RAW_STRING // r"abc"
+	RAW_STRING // `abc`
 	CHARACTER  // 'a'
 	IDENTIFIER // myVar
 
