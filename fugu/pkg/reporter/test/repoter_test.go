@@ -26,5 +26,5 @@ func TestWorkReporter(t *testing.T) {
 		}
 	}
 	rp := reporter.New(lex, "main.fg")
-	rp.SSend("Тест ошибка", tk)
+	rp.SendTk(reporter.TestError, tk)
 }

@@ -297,9 +297,10 @@ func (lex *Lexer) readMultiLineComment() token.Token {
 	lex.advance().advance()
 
 	for {
-		// TODO: надо выкинуть в верх ошибку: файл закончился, а комментарий так и не был закрыт
 		if lex.rn == 0 {
-			return lex.NewToken(token.ILLEGAL)
+			tk := lex.NewToken(token.ILLEGAL)
+			lex.report.SendTk(reporter.LexerNoClosing, tk)
+			return tk
 		}
 
 		if lex.rn == '*' && lex.peekRn() == '/' {
@@ -331,7 +332,9 @@ func (lex *Lexer) readString() token.Token {
 	}
 
 	if lex.rn == 0 {
-		return lex.NewToken(token.ILLEGAL) // TODO: выкинуть ошибку что нет закрывающей "
+		tk := lex.NewToken(token.ILLEGAL)
+		lex.report.SendTk(reporter.LexerNoClosing, tk)
+		return tk
 	}
 
 	lex.advance() // '"'
@@ -350,7 +353,9 @@ func (lex *Lexer) readRawString() token.Token {
 	}
 
 	if lex.rn == 0 {
-		return lex.NewToken(token.ILLEGAL) // TODO: выкинуть ошибку что нет закрывающей `
+		tk := lex.NewToken(token.ILLEGAL)
+		lex.report.SendTk(reporter.LexerNoClosing, tk)
+		return tk
 	}
 
 	lex.advance()
