@@ -14,6 +14,8 @@ type Parser struct {
 
 	curToken  token.Token
 	peekToken token.Token
+
+	pos int
 }
 
 func New(input, fileName string) *Parser {
@@ -25,5 +27,25 @@ func New(input, fileName string) *Parser {
 		lex: lex,
 	}
 	pars.report = pars.lex.Report()
+
+	pars.advance().advance()
+	if pars.curToken.Kind == token.EOF {
+		pars.report.SendTk(reporter.LexerNoClosing, pars.curToken)
+		return pars // TODO ошибку выкинуть
+	}
+
 	return pars
+}
+
+func (ps *Parser) advance() *Parser {
+	tk := ps.lex.NextToken()
+	ps.curToken = ps.peekToken
+	ps.peekToken = tk
+
+	if len(ps.Tokens) == 0 || ps.Tokens[len(ps.Tokens)-1].Kind != token.EOF {
+		ps.Tokens = append(ps.Tokens, ps.curToken)
+	}
+	ps.pos++
+
+	return ps
 }
