@@ -3,6 +3,7 @@ package parser
 import (
 	lexer "fugu/pkg/lexer"
 	"fugu/pkg/parser/action"
+	"fugu/pkg/parser/action/ast"
 	"fugu/pkg/reporter"
 	"fugu/pkg/token"
 )
@@ -14,6 +15,7 @@ type Parser struct {
 	report *reporter.Reporter
 
 	curToken token.Token
+	ast      *ast.Arena
 
 	pos int
 }
@@ -25,6 +27,11 @@ func New(input []byte, fileName string) *Parser {
 		Tokens: make([]token.Token, 0),
 
 		lex: lex,
+
+		ast: &ast.Arena{
+			Nodes:   make([]ast.Node, 512),
+			Strings: make([]string, 256),
+		},
 	}
 	pars.report = pars.lex.Report()
 	if pars.report.IsUse {
@@ -54,7 +61,7 @@ func (ps *Parser) advance() *Parser {
 
 func (ps *Parser) Run() {
 	var state int = 0
-	var stack []token.Token = make([]token.Token, 64)
+	// var stack []token.Token = make([]token.Token, 64)
 	for {
 		as := action.Action(state, ps.curToken.Kind)
 

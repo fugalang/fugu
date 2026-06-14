@@ -1,8 +1,8 @@
 package ast
 
 type Arena struct {
-	nodes   []Node
-	strings []string
+	Nodes   []Node
+	Strings []string
 }
 
 type StringID uint32
