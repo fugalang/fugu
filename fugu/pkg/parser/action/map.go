@@ -4,7 +4,7 @@ import (
 	. "fugu/pkg/token"
 )
 
-var ActionSrc = map[int]map[TokenKind]ActionStruct{
+var ActionSrc = &map[int]map[TokenKind]ActionStruct{
 	0: { // стартовое
 		GLITERAL: Sh(1),
 		L_PAREN:  Sh(2),

@@ -3,6 +3,7 @@ package action
 
 import (
 	"fmt"
+	"fugu/pkg/parser/action/ast"
 	"fugu/pkg/reporter"
 	. "fugu/pkg/token"
 	"sort"
@@ -21,9 +22,10 @@ const (
 )
 
 type ActionStruct struct {
-	Typ     ActionType
-	Num     int
-	ErrCode reporter.Code
+	Typ      ActionType
+	Num      int
+	NodeKind ast.NodeKind
+	ErrCode  reporter.Code
 }
 
 type table struct {
@@ -36,8 +38,8 @@ type table struct {
 func Sh(state int) ActionStruct {
 	return ActionStruct{Typ: Shift, Num: state, ErrCode: reporter.NoError}
 }
-func Red(state int) ActionStruct {
-	return ActionStruct{Typ: Reduce, Num: state, ErrCode: reporter.NoError}
+func Red(state int, n ast.NodeKind) ActionStruct {
+	return ActionStruct{Typ: Reduce, Num: state, NodeKind: n, ErrCode: reporter.NoError}
 }
 func Acc() ActionStruct                { return ActionStruct{Typ: Accept, Num: 0, ErrCode: reporter.NoError} }
 func Err(e reporter.Code) ActionStruct { return ActionStruct{Typ: Error, Num: 0, ErrCode: e} }
