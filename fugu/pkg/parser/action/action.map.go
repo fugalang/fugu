@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"fugu/pkg/parser/action/ast"
 	"fugu/pkg/reporter"
+	"fugu/pkg/token"
 	. "fugu/pkg/token"
 	"sort"
 	"strings"
@@ -59,8 +60,9 @@ func BuildActionSlice(src *map[int]map[TokenKind]ActionStruct) *table {
 	}
 	rows := make([][]couple, states)
 	for state, row := range *src {
-		entries := make([]couple, 0, len(row))
-		for tk, act := range row {
+		fullRow := expandMap(row)
+		entries := make([]couple, 0, len(fullRow))
+		for tk, act := range fullRow {
 			entries = append(entries, couple{int(tk), act})
 		}
 		sort.Slice(entries, func(i, j int) bool { return entries[i].tk < entries[j].tk })
@@ -120,6 +122,30 @@ func BuildActionSlice(src *map[int]map[TokenKind]ActionStruct) *table {
 	}
 }
 
+func expandMap(m map[TokenKind]ActionStruct) map[TokenKind]ActionStruct {
+	fullRow := make(map[TokenKind]ActionStruct, len(m))
+	keys := make([]int, 0, len(m))
+
+	for tk, act := range m {
+		fullRow[tk] = act
+		keys = append(keys, int(tk))
+	}
+
+	sort.Ints(keys)
+	for _, key := range keys {
+		tk := TokenKind(key)
+		act := m[tk]
+
+		for _, tk := range token.Expand(tk) {
+			if _, ok := fullRow[tk]; !ok {
+				fullRow[tk] = act
+			}
+		}
+	}
+
+	return fullRow
+}
+
 func GenerateActionTable(src *map[int]map[TokenKind]ActionStruct, tokenCount int) string {
 	table := BuildActionSlice(src)
 
@@ -131,6 +157,7 @@ func GenerateActionTable(src *map[int]map[TokenKind]ActionStruct, tokenCount int
 	out.WriteString("\t\"fugu/pkg/reporter\"\n")
 	out.WriteString("\t. \"fugu/pkg/token\"\n")
 	out.WriteString(")\n\n")
+	out.WriteString(fmt.Sprintf("const ActionTokenCount = %d\n\n", tokenCount))
 	out.WriteString("var Actions = []ActionStruct{\n")
 	for i, act := range table.actions {
 		out.WriteString(fmt.Sprintf("\t%v, // %d\n", renderActionType(act), i))
@@ -149,6 +176,9 @@ func GenerateActionTable(src *map[int]map[TokenKind]ActionStruct, tokenCount int
 	out.WriteString("func Action(state int, tk TokenKind) ActionStruct {\n")
 	out.WriteString("\tif state < 0 || state >= len(Base) {\n")
 	out.WriteString("\t\treturn Err(reporter.NoError)\n")
+	out.WriteString("\t}\n")
+	out.WriteString("\tif tk <= 0 || int(tk) >= ActionTokenCount {\n")
+	out.WriteString("\t\treturn Err(reporter.StateDoesNotToken)\n")
 	out.WriteString("\t}\n")
 	out.WriteString("\tb := Base[state]\n")
 	out.WriteString("\tif b < 0 {\n")
