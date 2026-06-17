@@ -127,6 +127,7 @@ func GenerateActionTable(src *map[int]map[TokenKind]ActionStruct, tokenCount int
 	out.WriteString("//! DO NOT EDIT\n")
 	out.WriteString("package action\n\n")
 	out.WriteString("import (\n")
+	out.WriteString("\t\"fugu/pkg/parser/action/ast\"\n")
 	out.WriteString("\t\"fugu/pkg/reporter\"\n")
 	out.WriteString("\t. \"fugu/pkg/token\"\n")
 	out.WriteString(")\n\n")
@@ -167,7 +168,7 @@ func renderActionType(a ActionStruct) string {
 	case Shift:
 		return fmt.Sprintf("Sh(%d)", a.Num)
 	case Reduce:
-		return fmt.Sprintf("Red(%d)", a.Num)
+		return fmt.Sprintf("Red(%d, ast.%s)", a.Num, a.NodeKind)
 	case Accept:
 		return "Acc()"
 	case Error:
