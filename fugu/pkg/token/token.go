@@ -171,6 +171,48 @@ func (tk *TokenKind) Group() TokenKind {
 	}
 }
 
+func Expand(tk TokenKind) []TokenKind {
+	switch tk {
+	case GLITERAL:
+		return []TokenKind{
+			GNUMBER,
+			GSTRING,
+			INTEGER,
+			IMAGINARY,
+			FLOATING,
+			STRING,
+			T_STRING,
+			RAW_STRING,
+			CHARACTER,
+			IDENTIFIER,
+		}
+	case GNUMBER:
+		return []TokenKind{
+			INTEGER,
+			IMAGINARY,
+			FLOATING,
+		}
+	case GSTRING:
+		return []TokenKind{
+			STRING,
+			T_STRING,
+			RAW_STRING,
+			CHARACTER,
+		}
+	case GARITHMETIC:
+		return []TokenKind{
+			DECREASE,
+			INCREASE,
+			MULTIPLY,
+			DIVIDE,
+			REMAINDER,
+			DEGREE,
+		}
+	default:
+		return nil
+	}
+}
+
 func Group(tk TokenKind) TokenKind {
 	return tk.Group()
 }
