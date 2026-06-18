@@ -1,4 +1,4 @@
-package reporter
+package diagnostics
 
 type Code uint16
 
@@ -46,10 +46,11 @@ var codes = []meta{
 	},
 
 	LexerNoClosing: {
-		code:  "LexerNoClosing",
-		msg:   "пропущен закрывающий символ",
-		arrow: "закрой за собой!",
-		notes: defaultNotes,
+		code:     "LexerNoClosing",
+		msg:      "пропущен закрывающий символ",
+		useBlock: true,
+		arrow:    "закрой за собой!",
+		notes:    defaultNotes,
 	},
 
 	ParserCantStartWork: {

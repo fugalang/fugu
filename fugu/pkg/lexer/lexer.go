@@ -1,7 +1,7 @@
 package lexer
 
 import (
-	"fugu/pkg/reporter"
+	"fugu/pkg/diagnostics"
 	"fugu/pkg/token"
 	"unicode"
 	"unicode/utf8"
@@ -18,7 +18,7 @@ type Lexer struct {
 	pos            token.Position
 
 	savePoint saveLexer
-	report    *reporter.Reporter
+	diagn     *diagnostics.Diagnostics
 }
 
 type saveLexer struct {
@@ -36,8 +36,8 @@ func (lex *Lexer) Input() *[]byte {
 	return &lex.input
 }
 
-func (lex *Lexer) Report() *reporter.Reporter {
-	return lex.report
+func (lex *Lexer) Report() *diagnostics.Diagnostics {
+	return lex.diagn
 }
 
 func (lex *Lexer) Reset() {
@@ -55,10 +55,10 @@ func New(input []byte, fileName string) *Lexer {
 			Offset:   0,
 		},
 	}
-	lex.report = &reporter.Reporter{
+	lex.diagn = &diagnostics.Diagnostics{
 		Source: lex,
 	}
-	lex.report.Init()
+	lex.diagn.Init()
 
 	lex.advance()
 	return lex
@@ -316,7 +316,7 @@ func (lex *Lexer) readMultiLineComment() token.Token {
 	for {
 		if lex.rn == 0 {
 			tk := lex.NewToken(token.ILLEGAL)
-			lex.report.SendTk(reporter.LexerNoClosing, tk)
+			lex.diagn.SendTk(diagnostics.LexerNoClosing, tk)
 			lex.unfreeze()
 			lex.stabilization()
 			return tk
@@ -354,7 +354,7 @@ func (lex *Lexer) readString() token.Token {
 
 	if lex.rn == 0 {
 		tk := lex.NewToken(token.ILLEGAL)
-		lex.report.SendTk(reporter.LexerNoClosing, tk)
+		lex.diagn.SendTk(diagnostics.LexerNoClosing, tk)
 		lex.unfreeze()
 		lex.stabilization()
 		return tk
@@ -379,7 +379,7 @@ func (lex *Lexer) readRawString() token.Token {
 
 	if lex.rn == 0 {
 		tk := lex.NewToken(token.ILLEGAL)
-		lex.report.SendTk(reporter.LexerNoClosing, tk)
+		lex.diagn.SendTk(diagnostics.LexerNoClosing, tk)
 		lex.unfreeze()
 		lex.stabilization()
 		return tk

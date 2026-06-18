@@ -3,8 +3,8 @@ package action
 
 import (
 	"fmt"
+	"fugu/pkg/diagnostics"
 	"fugu/pkg/parser/action/ast"
-	"fugu/pkg/reporter"
 	"fugu/pkg/token"
 	. "fugu/pkg/token"
 	"sort"
@@ -27,7 +27,7 @@ type ActionStruct struct {
 	Typ      ActionType
 	State    int
 	NodeKind ast.NodeKind
-	ErrCode  reporter.Code
+	ErrCode  diagnostics.Code
 }
 
 type table struct {
@@ -38,15 +38,15 @@ type table struct {
 
 // конструкторы
 func Sh(state int) ActionStruct {
-	return ActionStruct{Typ: Shift, State: state, ErrCode: reporter.NoError}
+	return ActionStruct{Typ: Shift, State: state, ErrCode: diagnostics.NoError}
 }
 func Red(state int, n ast.NodeKind) ActionStruct {
-	return ActionStruct{Typ: Reduce, State: state, NodeKind: n, ErrCode: reporter.NoError}
+	return ActionStruct{Typ: Reduce, State: state, NodeKind: n, ErrCode: diagnostics.NoError}
 }
-func Acc() ActionStruct                { return ActionStruct{Typ: Accept, State: 0, ErrCode: reporter.NoError} }
-func Err(e reporter.Code) ActionStruct { return ActionStruct{Typ: Error, State: 0, ErrCode: e} }
+func Acc() ActionStruct                   { return ActionStruct{Typ: Accept, State: 0, ErrCode: diagnostics.NoError} }
+func Err(e diagnostics.Code) ActionStruct { return ActionStruct{Typ: Error, State: 0, ErrCode: e} }
 func Ph(state int) ActionStruct {
-	return ActionStruct{Typ: Push, State: state, ErrCode: reporter.NoError}
+	return ActionStruct{Typ: Push, State: state, ErrCode: diagnostics.NoError}
 }
 
 func BuildActionSlice(src *map[int]map[TokenKind]ActionStruct) *table {
@@ -106,7 +106,7 @@ func BuildActionSlice(src *map[int]map[TokenKind]ActionStruct) *table {
 				base[state] = b
 				maxIdx := b + entries[len(entries)-1].tk
 				for len(actions) <= maxIdx {
-					actions = append(actions, ActionStruct{Typ: Error, ErrCode: reporter.NoError})
+					actions = append(actions, ActionStruct{Typ: Error, ErrCode: diagnostics.NoError})
 					check = append(check, -1)
 				}
 				for _, e := range entries {
@@ -158,7 +158,7 @@ func GenerateActionTable(src *map[int]map[TokenKind]ActionStruct, tokenCount int
 	out.WriteString("package action\n\n")
 	out.WriteString("import (\n")
 	out.WriteString("\t\"fugu/pkg/parser/action/ast\"\n")
-	out.WriteString("\t\"fugu/pkg/reporter\"\n")
+	out.WriteString("\t\"fugu/pkg/diagnostics\"\n")
 	out.WriteString("\t. \"fugu/pkg/token\"\n")
 	out.WriteString(")\n\n")
 	out.WriteString(fmt.Sprintf("const ActionTokenCount = %d\n\n", tokenCount))
@@ -179,20 +179,20 @@ func GenerateActionTable(src *map[int]map[TokenKind]ActionStruct, tokenCount int
 	out.WriteString("}\n\n")
 	out.WriteString("func Action(state int, tk TokenKind) ActionStruct {\n")
 	out.WriteString("\tif state < 0 || state >= len(Base) {\n")
-	out.WriteString("\t\treturn Err(reporter.NoError)\n")
+	out.WriteString("\t\treturn Err(diagnostics.NoError)\n")
 	out.WriteString("\t}\n")
 	out.WriteString("\tif tk <= 0 || int(tk) >= ActionTokenCount {\n")
-	out.WriteString("\t\treturn Err(reporter.StateDoesNotToken)\n")
+	out.WriteString("\t\treturn Err(diagnostics.StateDoesNotToken)\n")
 	out.WriteString("\t}\n")
 	out.WriteString("\tb := Base[state]\n")
 	out.WriteString("\tif b < 0 {\n")
-	out.WriteString("\t\treturn Err(reporter.NoError)\n")
+	out.WriteString("\t\treturn Err(diagnostics.NoError)\n")
 	out.WriteString("\t}\n")
 	out.WriteString("\tidx := b + int(tk)\n")
 	out.WriteString("\tif idx >= 0 && idx < len(Actions) && Check[idx] == state {\n")
 	out.WriteString("\t\treturn Actions[idx]\n")
 	out.WriteString("\t}\n")
-	out.WriteString("\treturn Err(reporter.StateDoesNotToken)\n")
+	out.WriteString("\treturn Err(diagnostics.StateDoesNotToken)\n")
 	out.WriteString("}\n")
 	return out.String()
 }
@@ -206,7 +206,7 @@ func renderActionType(a ActionStruct) string {
 	case Accept:
 		return "Acc()"
 	case Error:
-		return fmt.Sprintf("Err(%s)", "reporter."+a.ErrCode.Code())
+		return fmt.Sprintf("Err(%s)", "diagnostics."+a.ErrCode.Code())
 	}
-	return "Err(reporter.NoError)"
+	return "Err(diagnostics.NoError)"
 }

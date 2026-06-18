@@ -1,9 +1,9 @@
 package parser
 
 import (
+	"fugu/pkg/diagnostics"
 	lexer "fugu/pkg/lexer"
 	"fugu/pkg/parser/action/ast"
-	"fugu/pkg/reporter"
 	"fugu/pkg/token"
 )
 
@@ -12,7 +12,7 @@ type Parser struct {
 	Roots  []ast.NodeID
 
 	lex    *lexer.Lexer
-	report *reporter.Reporter
+	report *diagnostics.Diagnostics
 
 	curToken token.Token
 	ast      *ast.Arena
@@ -36,13 +36,13 @@ func New(input []byte, fileName string) *Parser {
 	}
 	pars.report = pars.lex.Report()
 	if pars.report.IsUse {
-		pars.report.SendTk(reporter.ParserCantStartWork, pars.curToken)
+		pars.report.SendTk(diagnostics.ParserCantStartWork, pars.curToken)
 		return pars
 	}
 
 	pars.advance()
 	if pars.curToken.Kind == token.EOF {
-		pars.report.SendTk(reporter.ParserCantStartWork, pars.curToken)
+		pars.report.SendTk(diagnostics.ParserCantStartWork, pars.curToken)
 		return pars
 	}
 
@@ -106,7 +106,7 @@ func (ps *Parser) decl() ast.NodeID {
 	case token.TYPE, token.ENUM, token.STRUCT, token.INTERFACE:
 		return ps.typeDecl()
 	default:
-		ps.report.SendTk(reporter.StateDoesNotToken, ps.curToken)
+		ps.report.SendTk(diagnostics.StateDoesNotToken, ps.curToken)
 		return ast.InvalidNode
 	}
 }
@@ -114,33 +114,33 @@ func (ps *Parser) decl() ast.NodeID {
 func (ps *Parser) stmt() ast.NodeID {
 	switch ps.curToken.Kind {
 	default:
-		ps.report.SendTk(reporter.StateDoesNotToken, ps.curToken)
+		ps.report.SendTk(diagnostics.StateDoesNotToken, ps.curToken)
 		return ast.InvalidNode
 	}
 }
 
 func (ps *Parser) moduleDecl() ast.NodeID {
-	ps.report.SendTk(reporter.StateDoesNotToken, ps.curToken)
+	ps.report.SendTk(diagnostics.StateDoesNotToken, ps.curToken)
 	return ast.InvalidNode
 }
 
 func (ps *Parser) useDecl() ast.NodeID {
-	ps.report.SendTk(reporter.StateDoesNotToken, ps.curToken)
+	ps.report.SendTk(diagnostics.StateDoesNotToken, ps.curToken)
 	return ast.InvalidNode
 }
 
 func (ps *Parser) fnDecl() ast.NodeID {
-	ps.report.SendTk(reporter.StateDoesNotToken, ps.curToken)
+	ps.report.SendTk(diagnostics.StateDoesNotToken, ps.curToken)
 	return ast.InvalidNode
 }
 
 func (ps *Parser) varDecl() ast.NodeID {
-	ps.report.SendTk(reporter.StateDoesNotToken, ps.curToken)
+	ps.report.SendTk(diagnostics.StateDoesNotToken, ps.curToken)
 	return ast.InvalidNode
 }
 
 func (ps *Parser) typeDecl() ast.NodeID {
-	ps.report.SendTk(reporter.StateDoesNotToken, ps.curToken)
+	ps.report.SendTk(diagnostics.StateDoesNotToken, ps.curToken)
 	return ast.InvalidNode
 }
 
@@ -194,7 +194,7 @@ func (ps *Parser) term() ast.NodeID {
 		ps.skipSlag()
 
 		if ps.curToken.Kind != token.R_PAREN {
-			ps.report.SendTk(reporter.StateDoesNotToken, ps.curToken)
+			ps.report.SendTk(diagnostics.StateDoesNotToken, ps.curToken)
 			return node
 		}
 
@@ -205,7 +205,7 @@ func (ps *Parser) term() ast.NodeID {
 		})
 	}
 
-	ps.report.SendTk(reporter.StateDoesNotToken, ps.curToken)
+	ps.report.SendTk(diagnostics.StateDoesNotToken, ps.curToken)
 	if ps.curToken.Kind != token.EOF {
 		ps.advance()
 	}

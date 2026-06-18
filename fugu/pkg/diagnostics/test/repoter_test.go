@@ -1,15 +1,15 @@
-package reporter
+package diagnostics
 
 import (
 	"fmt"
+	"fugu/pkg/diagnostics"
 	"fugu/pkg/lexer"
-	"fugu/pkg/reporter"
 	"fugu/pkg/token"
 	"testing"
 )
 
 // этот тест не имеет смысл я просто хотел посмотреть как работает вывод ошибок )
-func TestWorkReporter(t *testing.T) {
+func TestWorkdiagnostics(t *testing.T) {
 	input := []byte(`module main
 
 fn main() {
@@ -30,14 +30,14 @@ fn main() {
 	tk := tks[1]
 
 	fmt.Println(
-		reporter.BoldCyan(
+		diagnostics.BoldCyan(
 			string(tk.Literal(lex)),
 		),
 		tk.Kind.String(),
 		tk.Start,
 	)
 
-	rp := reporter.New(lex, "main.fg")
-	rp.SendTk(reporter.TestError, tk)
+	rp := diagnostics.New(lex, "main.fg")
+	rp.SendTk(diagnostics.LexerNoClosing, tk)
 	rp.Close()
 }

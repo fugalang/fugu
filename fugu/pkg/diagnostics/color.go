@@ -1,4 +1,4 @@
-package reporter
+package diagnostics
 
 const (
 	ansiReset = "\033[0m"
