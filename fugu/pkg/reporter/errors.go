@@ -5,105 +5,95 @@ type Code uint16
 const (
 	NoError Code = iota
 	TestError
-
-	// NoClosing
-	LexerNoClosing // не закрыт блок и тд
-
+	LexerNoClosing
 	ParserCantStartWork
-	StateDoesNotToken // состояние не расчитывает на этот токен
+	StateDoesNotToken
 )
 
-// TODO: надо будет очев сделать чтобы возвращал или на англ или на ру
-func (c Code) Msg() string {
-	switch c {
-	case NoError:
-		return "не найденна"
-	case TestError:
-		return "тестовая ошибка"
-	case LexerNoClosing:
-		return "пропущен закрывающий символ"
-	case StateDoesNotToken:
-		return "ошибка при работе с таблицой состояний"
-	case ParserCantStartWork:
-		return "нету возможности запучтить разбор"
-	default:
-		return "неизвестная ошибка"
-	}
+type Msg interface {
+	Code() string
+	Msg() string
+	Notes() []string
+	Arrow() string
+	IsUseBlock() bool
 }
 
-func (c Code) Notes() []string {
-	switch c {
-	case NoError:
-		return []string{
-			"Внутренняя ошибка отладки: сбой компонента.",
-			"Некорректное состояние, не ожидаемое при штатной работе.",
-			"Пожалуйста, сообщите об ошибке по адресу:",
-			"  https://github.com/fugalang/fugu/issues",
-			"По возможности приложите описание сценария воспроизведения.",
-		}
-	case TestError:
-		return []string{
-			"Внутренняя ошибка отладки: сбой компонента.",
-			"Некорректное состояние, не ожидаемое при штатной работе.",
-			"Пожалуйста, сообщите об ошибке по адресу:",
-			"  https://github.com/fugalang/fugu/issues",
-			"По возможности приложите описание сценария воспроизведения.",
-		}
+type meta struct {
+	code     string
+	msg      string
+	notes    []string
+	arrow    string
+	useBlock bool
+}
 
-	case StateDoesNotToken:
-		return []string{
-			"Внутренняя ошибка отладки: сбой компонента.",
-			"Некорректное состояние, не ожидаемое при штатной работе.",
-			"Пожалуйста, сообщите об ошибке по адресу:",
-			"  https://github.com/fugalang/fugu/issues",
-			"По возможности приложите описание сценария воспроизведения.",
-		}
+var defaultNotes = []string{
+	"Внутренняя ошибка отладки: сбой компонента.",
+	"Некорректное состояние, не ожидаемое при штатной работе.",
+	"Пожалуйста, сообщите об ошибке по адресу:",
+	"  https://github.com/fugalang/fugu/issues",
+}
 
-	case ParserCantStartWork:
-		return []string{
+var codes = []meta{
+	NoError: {
+		code: "NoError",
+		msg:  "не найденна",
+	},
+
+	TestError: {
+		code:  "TestError",
+		msg:   "тестовая ошибка",
+		notes: defaultNotes,
+	},
+
+	LexerNoClosing: {
+		code:  "LexerNoClosing",
+		msg:   "пропущен закрывающий символ",
+		arrow: "закрой за собой!",
+		notes: defaultNotes,
+	},
+
+	ParserCantStartWork: {
+		code:     "ParserCantStartWork",
+		msg:      "нету возможности запучтить разбор",
+		useBlock: true,
+		notes: []string{
 			"Исправьте прошлые ошибки, чтобы парсер отработал корректно.",
-		}
+		},
+	},
 
-	default:
-		return []string{}
+	StateDoesNotToken: {
+		code: "StateDoesNotToken",
+		msg:  "ошибка при работе с таблицой состояний",
+	},
+}
+
+func (c Code) meta() meta {
+	i := int(c)
+	if i < 0 || i >= len(codes) {
+		return meta{
+			code: "Unknown",
+			msg:  "неизвестная ошибка",
+		}
 	}
+	return codes[i]
 }
 
 func (c Code) Code() string {
-	switch c {
-	case NoError:
-		return "NoError"
-	case TestError:
-		return "TestError"
-	case LexerNoClosing:
-		return "LexerNoClosing"
-	case ParserCantStartWork:
-		return "ParserCantStartWork"
-	case StateDoesNotToken:
-		return "StateDoesNotToken"
-	default:
-		return "NoError"
-	}
+	return c.meta().code
+}
+
+func (c Code) Msg() string {
+	return c.meta().msg
+}
+
+func (c Code) Notes() []string {
+	return c.meta().notes
 }
 
 func (c Code) Arrow() string {
-	switch c {
-	case LexerNoClosing:
-		return "закрой за собой!"
-	default:
-		return ""
-	}
+	return c.meta().arrow
 }
 
 func (c Code) IsUseBlock() bool {
-	switch c {
-	case NoError:
-		return false
-	case StateDoesNotToken:
-		return false
-	case ParserCantStartWork:
-		return false
-	default:
-		return true
-	}
+	return c.meta().useBlock
 }

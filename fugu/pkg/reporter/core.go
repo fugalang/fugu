@@ -25,14 +25,6 @@ type Reporter struct {
 	wg sync.WaitGroup
 }
 
-type Msg interface {
-	Code() string
-	Msg() string
-	Notes() []string
-	Arrow() string
-	IsUseBlock() bool
-}
-
 type Err struct {
 	Code       string
 	FileName   string
@@ -108,7 +100,7 @@ func (rp *Reporter) outputer() {
 }
 
 func (rp *Reporter) buildMsg(err Err) *strings.Builder {
-	var out *strings.Builder
+	var out = &strings.Builder{}
 
 	label := "error"
 	if err.Code != "" {
