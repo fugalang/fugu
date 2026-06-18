@@ -21,9 +21,6 @@ jobs:
     - name: Build
       working-directory: fugu
       run: |
-        ls
-        cd fugu
-        ls
         go mod tidy
         go generate ./pkg/parser/action
         go build -v ./...
