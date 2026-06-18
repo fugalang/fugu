@@ -24,11 +24,13 @@ type NodeKind uint16
 
 const (
 	KindInvalid NodeKind = iota
+	Expr
 	KindLiteral
 	KindParenExpr
 	KindAdditiveExpr
 	KindMultiplicativeExpr
-	KindPowerExpr
+	KindPrimaryExpr
+	KindDegreeExpr
 )
 
 func (kind NodeKind) String() string {
@@ -43,8 +45,8 @@ func (kind NodeKind) String() string {
 		return "KindAdditiveExpr"
 	case KindMultiplicativeExpr:
 		return "KindMultiplicativeExpr"
-	case KindPowerExpr:
-		return "KindPowerExpr"
+	case KindDegreeExpr:
+		return "KindDegreeExpr"
 	default:
 		return "KindInvalid"
 	}
