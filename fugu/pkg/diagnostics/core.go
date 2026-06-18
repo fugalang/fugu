@@ -1,4 +1,4 @@
-package reporter
+package diagnostics
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ type Report interface {
 	Input() *[]byte
 }
 
-type Reporter struct {
+type Diagnostics struct {
 	Source  Report
 	lines   [][]byte
 	err     chan Err
@@ -23,14 +23,6 @@ type Reporter struct {
 	IsUse bool // чтобы знать были ли ошибки на прошлом этапе
 
 	wg sync.WaitGroup
-}
-
-type Msg interface {
-	Code() string
-	Msg() string
-	Notes() []string
-	Arrow() string
-	IsUseBlock() bool
 }
 
 type Err struct {
@@ -45,17 +37,23 @@ type Err struct {
 	IsUseBlock bool
 }
 
-func New(source Report, fileName string) *Reporter {
-	rp := &Reporter{
+func New(source Report, fileName string) *Diagnostics {
+	rp := &Diagnostics{
 		Source: source,
 	}
 	rp.Init()
 	return rp
 }
 
-func (rp *Reporter) Init() {
+func (rp *Diagnostics) Init() {
 	if !rp.isInit.Load() {
-		rp.lines = SplitLines(*rp.Source.Input())
+		input := rp.Source.Input()
+		if input == nil {
+			rp.lines = nil
+		} else {
+			rp.lines = SplitLines(*input)
+		}
+		rp.lines = SplitLines(*input)
 		rp.err = make(chan Err, 64)
 		rp.isInit.Store(true)
 		rp.wg.Add(1)
@@ -65,7 +63,7 @@ func (rp *Reporter) Init() {
 	}
 }
 
-func (rp *Reporter) Close() {
+func (rp *Diagnostics) Close() {
 	if !rp.isClose.Load() {
 		rp.isClose.Store(true)
 		close(rp.err)
@@ -75,18 +73,17 @@ func (rp *Reporter) Close() {
 	}
 }
 
-func (rp *Reporter) Send(err Err) {
+func (rp *Diagnostics) Send(err Err) {
 	if !rp.IsUse {
 		rp.IsUse = true
 	}
-	if !rp.isClose.Load() {
-		rp.err <- err
-	} else {
-		panic("You cant write to a closed reporter")
+	if rp.isClose.Load() {
+		panic("You cant write to a closed diagnostics")
 	}
+	rp.err <- err
 }
 
-func (rp *Reporter) SendTk(msg Msg, tk token.Token) {
+func (rp *Diagnostics) SendTk(msg Msg, tk token.Token) {
 	rp.Send(Err{
 		Code:       msg.Code(),
 		FileName:   tk.Pos.FileName,
@@ -100,15 +97,15 @@ func (rp *Reporter) SendTk(msg Msg, tk token.Token) {
 	})
 }
 
-func (rp *Reporter) outputer() {
+func (rp *Diagnostics) outputer() {
 	defer rp.wg.Done()
 	for err := range rp.err {
-		fmt.Println(rp.buildMsg(err).String())
+		fmt.Println(rp.buildMsg(err))
 	}
 }
 
-func (rp *Reporter) buildMsg(err Err) *strings.Builder {
-	var out *strings.Builder
+func (rp *Diagnostics) buildMsg(err Err) string {
+	var out = &strings.Builder{}
 
 	label := "error"
 	if err.Code != "" {
@@ -204,10 +201,10 @@ func (rp *Reporter) buildMsg(err Err) *strings.Builder {
 	}
 	out.WriteString("\n")
 
-	return out
+	return out.String() // оставил владения тут
 }
 
-func (rp *Reporter) getLine(err Err) [][]byte {
+func (rp *Diagnostics) getLine(err Err) [][]byte {
 	if len(rp.lines) == 0 {
 		return nil
 	}

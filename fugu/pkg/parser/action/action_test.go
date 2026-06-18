@@ -38,9 +38,9 @@ func TestActionMap(t *testing.T) {
 			continue
 		}
 
-		if act.Num != tt.next {
+		if act.State != tt.next {
 			t.Errorf("[%s] Неверное состояние. Ожидалось: %d, получено: %d",
-				tt.name, tt.next, act.Num)
+				tt.name, tt.next, act.State)
 			continue
 		}
 	}
