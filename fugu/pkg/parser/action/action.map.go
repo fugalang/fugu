@@ -20,11 +20,12 @@ const (
 	Reduce // Свёртка: заменить последовательность символов по правилу грамматики
 	Accept // Успех: входная цепочка полностью распознана
 	Error  // Ошибка: для текущего состояния и токена действие не определено
+	Push   // Вызов: сохранить текущее состояние в стек и перейти к целевому состоянию
 )
 
 type ActionStruct struct {
 	Typ      ActionType
-	Num      int
+	State    int
 	NodeKind ast.NodeKind
 	ErrCode  reporter.Code
 }
@@ -37,13 +38,16 @@ type table struct {
 
 // конструкторы
 func Sh(state int) ActionStruct {
-	return ActionStruct{Typ: Shift, Num: state, ErrCode: reporter.NoError}
+	return ActionStruct{Typ: Shift, State: state, ErrCode: reporter.NoError}
 }
 func Red(state int, n ast.NodeKind) ActionStruct {
-	return ActionStruct{Typ: Reduce, Num: state, NodeKind: n, ErrCode: reporter.NoError}
+	return ActionStruct{Typ: Reduce, State: state, NodeKind: n, ErrCode: reporter.NoError}
 }
-func Acc() ActionStruct                { return ActionStruct{Typ: Accept, Num: 0, ErrCode: reporter.NoError} }
-func Err(e reporter.Code) ActionStruct { return ActionStruct{Typ: Error, Num: 0, ErrCode: e} }
+func Acc() ActionStruct                { return ActionStruct{Typ: Accept, State: 0, ErrCode: reporter.NoError} }
+func Err(e reporter.Code) ActionStruct { return ActionStruct{Typ: Error, State: 0, ErrCode: e} }
+func Ph(state int) ActionStruct {
+	return ActionStruct{Typ: Push, State: state, ErrCode: reporter.NoError}
+}
 
 func BuildActionSlice(src *map[int]map[TokenKind]ActionStruct) *table {
 	ms := 0
@@ -196,9 +200,9 @@ func GenerateActionTable(src *map[int]map[TokenKind]ActionStruct, tokenCount int
 func renderActionType(a ActionStruct) string {
 	switch a.Typ {
 	case Shift:
-		return fmt.Sprintf("Sh(%d)", a.Num)
+		return fmt.Sprintf("Sh(%d)", a.State)
 	case Reduce:
-		return fmt.Sprintf("Red(%d, ast.%s)", a.Num, a.NodeKind)
+		return fmt.Sprintf("Red(%d, ast.%s)", a.State, a.NodeKind)
 	case Accept:
 		return "Acc()"
 	case Error:
