@@ -220,7 +220,7 @@ func expandMap(m map[TokenKind]ActionStruct) map[TokenKind]ActionStruct {
 	return fullRow
 }
 
-func GenerateActionTable(src *map[int]map[TokenKind]ActionStruct, tokenCount int) string {
+func GenerateActionTable(src *map[int]map[TokenKind]ActionStruct) string {
 	table := BuildActionSlice(src)
 
 	var out strings.Builder
@@ -231,7 +231,7 @@ func GenerateActionTable(src *map[int]map[TokenKind]ActionStruct, tokenCount int
 	out.WriteString("\t\"fugu/pkg/diagnostics\"\n")
 	out.WriteString("\t. \"fugu/pkg/token\"\n")
 	out.WriteString(")\n\n")
-	out.WriteString(fmt.Sprintf("const ActionTokenCount = %d\n\n", tokenCount))
+	out.WriteString(fmt.Sprintf("const ActionTokenCount = int(EndToken)\n\n"))
 	out.WriteString("var Actions = []ActionStruct{\n")
 	for i, act := range table.actions {
 		out.WriteString(fmt.Sprintf("\t%v, // %d\n", renderActionType(act), i))

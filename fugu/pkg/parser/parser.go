@@ -72,7 +72,7 @@ func (p *Parser) Run() {
 	stateStack := []int{0}
 	symStack := []stackSymbol{}
 
-	for p.curToken.Kind != token.EOF {
+	for {
 
 		if p.skip() {
 			continue
@@ -119,6 +119,10 @@ func (p *Parser) Run() {
 
 			// build AST node
 			newNode := p.buildNode(act.NodeKind, items)
+			if newNode == ast.InvalidNode {
+				p.diagn.SendTk(diagnostics.ParserCantStartWork, p.curToken)
+				return
+			}
 
 			stateStack = stateStack[:len(stateStack)-count]
 			top := stateStack[len(stateStack)-1]
@@ -144,7 +148,7 @@ var nodeBuilders = map[ast.NodeKind]nodeBuilder{
 	ast.KindLiteral:            buildLiteral,
 	ast.KindAdditiveExpr:       buildBinary,
 	ast.KindMultiplicativeExpr: buildBinary,
-	ast.KindPowerExpr:          buildBinary,
+	ast.KindDegreeExpr:         buildBinary,
 }
 
 func (p *Parser) buildNode(kind ast.NodeKind, items []stackSymbol) ast.NodeID {
@@ -157,6 +161,9 @@ func (p *Parser) buildNode(kind ast.NodeKind, items []stackSymbol) ast.NodeID {
 }
 
 func buildLiteral(p *Parser, kind ast.NodeKind, items []stackSymbol) ast.NodeID {
+	if len(items) == 3 {
+		return p.ensureNode(items[1])
+	}
 	if len(items) != 1 {
 		return ast.InvalidNode
 	}
@@ -169,6 +176,9 @@ func buildLiteral(p *Parser, kind ast.NodeKind, items []stackSymbol) ast.NodeID 
 }
 
 func buildBinary(p *Parser, kind ast.NodeKind, items []stackSymbol) ast.NodeID {
+	if len(items) == 1 {
+		return p.ensureNode(items[0])
+	}
 	if len(items) != 3 {
 		return ast.InvalidNode
 	}

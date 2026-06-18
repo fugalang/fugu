@@ -1,0 +1,31 @@
+{
+  "name": "gramxpl",
+  "displayName": "gramxpl",
+  "version": "0.0.3",
+  "publisher": "local",
+  "engines": {
+    "vscode": ">=1.80.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [
+    "onLanguage:gramxpl"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "gramxpl",
+        "aliases": ["gramxpl"],
+        "extensions": [".gm"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "gramxpl",
+        "scopeName": "source.gramxpl",
+        "path": "./syntaxes/gramxpl.tmLanguage.json"
+      }
+    ]
+  }
+}

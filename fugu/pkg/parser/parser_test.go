@@ -31,9 +31,9 @@ func TestParserExpr(t *testing.T) {
 		{
 			name:              "Тест правой связности степени",
 			input:             []byte("2 ^ 3 ^ 4"),
-			expectedRoot:      ast.KindPowerExpr,
+			expectedRoot:      ast.KindDegreeExpr,
 			expectedRootOp:    token.DEGREE,
-			expectedRight:     ast.KindPowerExpr,
+			expectedRight:     ast.KindDegreeExpr,
 			checkRightAsPower: true,
 			expectedRoots:     1,
 		},
@@ -85,7 +85,7 @@ func TestParserExpr(t *testing.T) {
 			continue
 		}
 
-		if tt.checkRightAsPower && right.Kind != ast.KindPowerExpr {
+		if tt.checkRightAsPower && right.Kind != ast.KindDegreeExpr {
 			t.Errorf("[%s] Правая часть степени должна быть тоже степенью. Получен: %s",
 				tt.name, right.Kind)
 			continue

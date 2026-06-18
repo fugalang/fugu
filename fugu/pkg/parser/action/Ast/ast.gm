@@ -1,0 +1,31 @@
+%start Expr
+
+%token GLITERAL
+%token L_PAREN R_PAREN
+
+%token INCREASE
+%token DECREASE
+%token MULTIPLY
+%token DIVIDE
+%token DEGREE
+
+Expr:
+    KindAdditiveExpr
+
+KindAdditiveExpr:
+    KindAdditiveExpr INCREASE KindMultiplicativeExpr => KindAdditiveExpr
+    | KindAdditiveExpr DECREASE KindMultiplicativeExpr => KindAdditiveExpr
+    | KindMultiplicativeExpr
+
+KindMultiplicativeExpr:
+    KindMultiplicativeExpr MULTIPLY KindDegreeExpr => KindMultiplicativeExpr
+    | KindMultiplicativeExpr DIVIDE KindDegreeExpr => KindMultiplicativeExpr
+    | KindDegreeExpr
+
+KindDegreeExpr:
+    KindPrimaryExpr DEGREE KindDegreeExpr => KindDegreeExpr
+    | KindPrimaryExpr
+
+KindPrimaryExpr:
+    GLITERAL => KindLiteral
+    | L_PAREN Expr R_PAREN => KindParenExpr
