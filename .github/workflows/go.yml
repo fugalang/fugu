@@ -12,20 +12,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
+    - uses: actions/setup-go@v5
       with:
-        go-version: '1.24'
+        go-version: '1.25.6'
         cache: true
+        cache-dependency-path: fugu/go.sum
 
     - name: Build
+      working-directory: fugu
       run: |
-        cd fugu
         go mod download
-        go generate ./pkg/parser/action
         go build -v ./...
 
     - name: Test
-      run: |
-        cd fugu
-        go test -v -race ./...
+      working-directory: fugu
+      run: go test -v -race ./...
