@@ -19,6 +19,7 @@ jobs:
         cache: true
 
     - name: Build
+      working-directory: fugu
       run: |
         ls
         cd fugu
