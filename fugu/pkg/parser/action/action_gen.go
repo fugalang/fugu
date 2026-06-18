@@ -4,10 +4,11 @@ package action
 import (
 	"fugu/pkg/diagnostics"
 	"fugu/pkg/parser/action/ast"
+	"fugu/pkg/token"
 	. "fugu/pkg/token"
 )
 
-const ActionTokenCount = 99
+const ActionTokenCount = int(token.EndToken)
 
 var Actions = []ActionStruct{
 	Err(diagnostics.NoError),           // 0
@@ -19,7 +20,7 @@ var Actions = []ActionStruct{
 	Sh(1),                              // 6
 	Sh(1),                              // 7
 	Sh(1),                              // 8
-	Red(1, ast.KindLiteral),            // 9
+	Err(diagnostics.NoError),           // 9
 	Sh(1),                              // 10
 	Sh(1),                              // 11
 	Sh(1),                              // 12
@@ -43,13 +44,13 @@ var Actions = []ActionStruct{
 	Err(diagnostics.NoError),           // 30
 	Err(diagnostics.NoError),           // 31
 	Err(diagnostics.NoError),           // 32
-	Red(4, ast.KindMultiplicativeExpr), // 33
+	Red(3, ast.KindMultiplicativeExpr), // 33
 	Err(diagnostics.NoError),           // 34
 	Err(diagnostics.NoError),           // 35
 	Err(diagnostics.NoError),           // 36
 	Err(diagnostics.NoError),           // 37
 	Err(diagnostics.NoError),           // 38
-	Red(5, ast.KindPowerExpr),          // 39
+	Red(3, ast.KindPowerExpr),          // 39
 	Err(diagnostics.NoError),           // 40
 	Err(diagnostics.NoError),           // 41
 	Err(diagnostics.NoError),           // 42
@@ -92,13 +93,13 @@ var Actions = []ActionStruct{
 	Red(1, ast.KindLiteral),            // 79
 	Red(1, ast.KindLiteral),            // 80
 	Red(1, ast.KindLiteral),            // 81
-	Red(4, ast.KindMultiplicativeExpr), // 82
+	Red(3, ast.KindMultiplicativeExpr), // 82
 	Err(diagnostics.NoError),           // 83
 	Err(diagnostics.NoError),           // 84
 	Err(diagnostics.NoError),           // 85
 	Err(diagnostics.NoError),           // 86
 	Err(diagnostics.NoError),           // 87
-	Red(5, ast.KindPowerExpr),          // 88
+	Red(3, ast.KindPowerExpr),          // 88
 	Err(diagnostics.NoError),           // 89
 	Err(diagnostics.NoError),           // 90
 	Err(diagnostics.NoError),           // 91
@@ -114,17 +115,17 @@ var Actions = []ActionStruct{
 	Err(diagnostics.NoError),           // 101
 	Err(diagnostics.NoError),           // 102
 	Err(diagnostics.NoError),           // 103
-	Red(4, ast.KindMultiplicativeExpr), // 104
-	Red(4, ast.KindMultiplicativeExpr), // 105
+	Red(3, ast.KindMultiplicativeExpr), // 104
+	Red(3, ast.KindMultiplicativeExpr), // 105
 	Sh(4),                              // 106
 	Sh(4),                              // 107
 	Sh(4),                              // 108
 	Sh(5),                              // 109
-	Red(5, ast.KindPowerExpr),          // 110
-	Red(5, ast.KindPowerExpr),          // 111
-	Red(5, ast.KindPowerExpr),          // 112
-	Red(5, ast.KindPowerExpr),          // 113
-	Red(5, ast.KindPowerExpr),          // 114
+	Red(3, ast.KindPowerExpr),          // 110
+	Red(3, ast.KindPowerExpr),          // 111
+	Red(3, ast.KindPowerExpr),          // 112
+	Red(3, ast.KindPowerExpr),          // 113
+	Red(3, ast.KindPowerExpr),          // 114
 	Sh(5),                              // 115
 }
 
@@ -138,7 +139,7 @@ var Check = []int{
 	0,  // 6
 	0,  // 7
 	0,  // 8
-	1,  // 9
+	-1, // 9
 	0,  // 10
 	0,  // 11
 	0,  // 12
@@ -256,6 +257,35 @@ var Base = []int{
 	34, // state 5
 }
 
+var Gotos = []int{
+	-1, // 0
+	1,  // 1
+	1,  // 2
+	3,  // 3
+	3,  // 4
+	4,  // 5
+	5,  // 6
+}
+
+var GotoCheck = []int{
+	-1, // 0
+	2,  // 1
+	0,  // 2
+	2,  // 3
+	1,  // 4
+	3,  // 5
+	4,  // 6
+}
+
+var GotoBase = []int{
+	1,  // state 0
+	1,  // state 1
+	0,  // state 2
+	1,  // state 3
+	1,  // state 4
+	-1, // state 5
+}
+
 func Action(state int, tk TokenKind) ActionStruct {
 	if state < 0 || state >= len(Base) {
 		return Err(diagnostics.NoError)
@@ -272,4 +302,19 @@ func Action(state int, tk TokenKind) ActionStruct {
 		return Actions[idx]
 	}
 	return Err(diagnostics.StateDoesNotToken)
+}
+
+func Goto(state int, k ast.NodeKind) int {
+	if state < 0 || state >= len(GotoBase) {
+		return -1
+	}
+	b := GotoBase[state]
+	if b < 0 {
+		return -1
+	}
+	idx := b + int(k)
+	if idx >= 0 && idx < len(Gotos) && GotoCheck[idx] == state {
+		return Gotos[idx]
+	}
+	return -1
 }

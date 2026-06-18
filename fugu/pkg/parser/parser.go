@@ -3,6 +3,7 @@ package parser
 import (
 	"fugu/pkg/diagnostics"
 	lexer "fugu/pkg/lexer"
+	"fugu/pkg/parser/action"
 	"fugu/pkg/parser/action/ast"
 	"fugu/pkg/token"
 )
@@ -11,8 +12,8 @@ type Parser struct {
 	Tokens []token.Token
 	Roots  []ast.NodeID
 
-	lex    *lexer.Lexer
-	report *diagnostics.Diagnostics
+	lex   *lexer.Lexer
+	diagn *diagnostics.Diagnostics
 
 	curToken token.Token
 	ast      *ast.Arena
@@ -23,235 +24,199 @@ type Parser struct {
 func New(input []byte, fileName string) *Parser {
 	lex := lexer.New(input, fileName)
 
-	pars := &Parser{
+	p := &Parser{
 		Tokens: make([]token.Token, 0),
 		Roots:  make([]ast.NodeID, 0),
 
 		lex: lex,
-
 		ast: &ast.Arena{
 			Nodes:   make([]ast.Node, 0, 512),
 			Strings: make([]string, 0, 256),
 		},
 	}
-	pars.report = pars.lex.Report()
-	if pars.report.IsUse {
-		pars.report.SendTk(diagnostics.ParserCantStartWork, pars.curToken)
-		return pars
+
+	p.diagn = p.lex.Report()
+
+	if p.diagn.IsUse {
+		p.diagn.SendTk(diagnostics.ParserCantStartWork, p.curToken)
+		return p
 	}
 
-	pars.advance()
-	if pars.curToken.Kind == token.EOF {
-		pars.report.SendTk(diagnostics.ParserCantStartWork, pars.curToken)
-		return pars
+	p.advance()
+
+	if p.curToken.Kind == token.EOF {
+		p.diagn.SendTk(diagnostics.ParserCantStartWork, p.curToken)
+		return p
 	}
 
-	return pars
+	return p
 }
 
-func (ps *Parser) advance() *Parser {
-	ps.curToken = ps.lex.NextToken()
+func (p *Parser) advance() {
+	p.curToken = p.lex.NextToken()
 
-	if len(ps.Tokens) == 0 || ps.Tokens[len(ps.Tokens)-1].Kind != token.EOF {
-		ps.Tokens = append(ps.Tokens, ps.curToken)
+	if len(p.Tokens) == 0 || p.Tokens[len(p.Tokens)-1].Kind != token.EOF {
+		p.Tokens = append(p.Tokens, p.curToken)
 	}
-	ps.pos++
 
-	return ps
+	p.pos++
 }
 
-func (ps *Parser) Run() {
-	for ps.curToken.Kind != token.EOF {
-		ps.skipSlag()
-		if ps.curToken.Kind == token.EOF {
+type stackSymbol struct {
+	isNode bool
+	node   ast.NodeID
+	tok    token.Token
+}
+
+func (p *Parser) Run() {
+	stateStack := []int{0}
+	symStack := []stackSymbol{}
+
+	for p.curToken.Kind != token.EOF {
+
+		if p.skip() {
+			continue
+		}
+
+		state := stateStack[len(stateStack)-1]
+
+		act := action.Action(state, p.curToken.Kind)
+
+		switch act.Typ {
+		case action.Accept:
+			if len(symStack) > 0 {
+				last := symStack[len(symStack)-1]
+				if last.isNode {
+					p.Roots = append(p.Roots, last.node)
+				}
+			}
 			return
-		}
 
-		pos := ps.pos
-		node := ps.top()
+		case action.Error:
+			p.diagn.SendTk(act.ErrCode, p.curToken)
+			return
 
-		if node != ast.InvalidNode {
-			ps.Roots = append(ps.Roots, node)
-		}
+		case action.Shift:
+			symStack = append(symStack, stackSymbol{
+				isNode: false,
+				tok:    p.curToken,
+			})
 
-		ps.endTop()
+			stateStack = append(stateStack, act.State)
+			p.advance()
 
-		if ps.pos == pos {
-			ps.advance()
+		case action.Reduce:
+			count := act.State
+
+			if count > len(symStack) {
+				p.diagn.SendTk(diagnostics.ParserCantStartWork, p.curToken)
+				return
+			}
+
+			start := len(symStack) - count
+			items := symStack[start:]
+			symStack = symStack[:start]
+
+			// build AST node
+			newNode := p.buildNode(act.NodeKind, items)
+
+			stateStack = stateStack[:len(stateStack)-count]
+			top := stateStack[len(stateStack)-1]
+			next := action.Goto(top, act.NodeKind)
+
+			if next < 0 {
+				p.diagn.SendTk(diagnostics.ParserCantStartWork, p.curToken)
+				return
+			}
+
+			stateStack = append(stateStack, next)
+			symStack = append(symStack, stackSymbol{
+				isNode: true,
+				node:   newNode,
+			})
 		}
 	}
 }
 
-func (ps *Parser) top() ast.NodeID {
-	switch ps.curToken.Kind {
-	case token.MODULE, token.USE, token.FN, token.LET, token.CONST, token.TYPE, token.ENUM, token.STRUCT, token.INTERFACE:
-		return ps.decl()
-	case token.RETURN, token.IF, token.MATCH, token.FOR, token.CONTINUE, token.BREAK:
-		return ps.stmt()
-	default:
-		return ps.expr(1)
-	}
+type nodeBuilder func(*Parser, ast.NodeKind, []stackSymbol) ast.NodeID
+
+var nodeBuilders = map[ast.NodeKind]nodeBuilder{
+	ast.KindLiteral:            buildLiteral,
+	ast.KindAdditiveExpr:       buildBinary,
+	ast.KindMultiplicativeExpr: buildBinary,
+	ast.KindPowerExpr:          buildBinary,
 }
 
-func (ps *Parser) decl() ast.NodeID {
-	switch ps.curToken.Kind {
-	case token.MODULE:
-		return ps.moduleDecl()
-	case token.USE:
-		return ps.useDecl()
-	case token.FN:
-		return ps.fnDecl()
-	case token.LET, token.CONST:
-		return ps.varDecl()
-	case token.TYPE, token.ENUM, token.STRUCT, token.INTERFACE:
-		return ps.typeDecl()
-	default:
-		ps.report.SendTk(diagnostics.StateDoesNotToken, ps.curToken)
+func (p *Parser) buildNode(kind ast.NodeKind, items []stackSymbol) ast.NodeID {
+	if builder, ok := nodeBuilders[kind]; ok {
+		return builder(p, kind, items)
+	}
+
+	p.diagn.SendTk(diagnostics.StateDoesNotToken, p.curToken)
+	return ast.InvalidNode
+}
+
+func buildLiteral(p *Parser, kind ast.NodeKind, items []stackSymbol) ast.NodeID {
+	if len(items) != 1 {
 		return ast.InvalidNode
 	}
+
+	if items[0].isNode {
+		return items[0].node
+	}
+
+	return p.makeLiteral(items[0].tok, kind)
 }
 
-func (ps *Parser) stmt() ast.NodeID {
-	switch ps.curToken.Kind {
-	default:
-		ps.report.SendTk(diagnostics.StateDoesNotToken, ps.curToken)
+func buildBinary(p *Parser, kind ast.NodeKind, items []stackSymbol) ast.NodeID {
+	if len(items) != 3 {
 		return ast.InvalidNode
 	}
+
+	left := p.ensureNode(items[0])
+	right := p.ensureNode(items[2])
+
+	id := ast.NodeID(len(p.ast.Nodes))
+
+	p.ast.Nodes = append(p.ast.Nodes, ast.Node{
+		Kind:  kind,
+		Data1: uint32(left),
+		Data2: uint32(right),
+		Data3: uint32(items[1].tok.Kind),
+	})
+
+	return id
 }
 
-func (ps *Parser) moduleDecl() ast.NodeID {
-	ps.report.SendTk(diagnostics.StateDoesNotToken, ps.curToken)
-	return ast.InvalidNode
+func (p *Parser) ensureNode(s stackSymbol) ast.NodeID {
+	if s.isNode {
+		return s.node
+	}
+
+	return p.makeLiteral(s.tok, ast.KindLiteral)
 }
 
-func (ps *Parser) useDecl() ast.NodeID {
-	ps.report.SendTk(diagnostics.StateDoesNotToken, ps.curToken)
-	return ast.InvalidNode
+func (p *Parser) makeLiteral(tk token.Token, kind ast.NodeKind) ast.NodeID {
+	id := ast.NodeID(len(p.ast.Nodes))
+
+	p.ast.Nodes = append(p.ast.Nodes, ast.Node{
+		Kind:  kind,
+		Data1: uint32(tk.Kind),
+		Data2: uint32(tk.Start),
+		Data3: uint32(tk.End),
+	})
+
+	return id
 }
 
-func (ps *Parser) fnDecl() ast.NodeID {
-	ps.report.SendTk(diagnostics.StateDoesNotToken, ps.curToken)
-	return ast.InvalidNode
-}
-
-func (ps *Parser) varDecl() ast.NodeID {
-	ps.report.SendTk(diagnostics.StateDoesNotToken, ps.curToken)
-	return ast.InvalidNode
-}
-
-func (ps *Parser) typeDecl() ast.NodeID {
-	ps.report.SendTk(diagnostics.StateDoesNotToken, ps.curToken)
-	return ast.InvalidNode
-}
-
-func (ps *Parser) expr(minPrior int) ast.NodeID {
-	left := ps.term()
-
+func (p *Parser) skip() bool {
 	for {
-		ps.skipSlag()
-
-		prior, right, ok := opPrior(ps.curToken.Kind)
-		if !ok || prior < minPrior {
-			return left
+		switch p.curToken.Kind {
+		case token.SPACING, token.COMMENT, token.M_COMMENT:
+			p.advance()
+			return true
+		default:
+			return false
 		}
-
-		op := ps.curToken
-		ps.advance()
-
-		next := prior + 1
-		if right {
-			next = prior
-		}
-
-		rightNode := ps.expr(next)
-		left = ps.node(ast.Node{
-			Kind:  opKind(op.Kind),
-			Data1: uint32(left),
-			Data2: uint32(rightNode),
-			Data3: uint32(op.Kind),
-		})
-	}
-}
-
-func (ps *Parser) term() ast.NodeID {
-	ps.skipSlag()
-
-	switch ps.curToken.Kind.Group() {
-	case token.GNUMBER, token.GSTRING, token.GLITERAL:
-		tk := ps.curToken
-		ps.advance()
-		return ps.node(ast.Node{
-			Kind:  ast.KindLiteral,
-			Data1: uint32(tk.Kind),
-			Data2: uint32(tk.Start),
-			Data3: uint32(tk.End),
-		})
-	}
-
-	if ps.curToken.Kind == token.L_PAREN {
-		ps.advance()
-		node := ps.expr(1)
-		ps.skipSlag()
-
-		if ps.curToken.Kind != token.R_PAREN {
-			ps.report.SendTk(diagnostics.StateDoesNotToken, ps.curToken)
-			return node
-		}
-
-		ps.advance()
-		return ps.node(ast.Node{
-			Kind:  ast.KindParenExpr,
-			Data1: uint32(node),
-		})
-	}
-
-	ps.report.SendTk(diagnostics.StateDoesNotToken, ps.curToken)
-	if ps.curToken.Kind != token.EOF {
-		ps.advance()
-	}
-	return ps.node(ast.Node{Kind: ast.KindInvalid})
-}
-
-func (ps *Parser) skipSlag() {
-	for ps.curToken.Kind == token.SPACING || ps.curToken.Kind == token.COMMENT || ps.curToken.Kind == token.M_COMMENT {
-		ps.advance()
-	}
-}
-
-func (ps *Parser) node(node ast.Node) ast.NodeID {
-	ps.ast.Nodes = append(ps.ast.Nodes, node)
-	return ast.NodeID(len(ps.ast.Nodes) - 1)
-}
-
-func (ps *Parser) endTop() {
-	ps.skipSlag()
-	if ps.curToken.Kind == token.END {
-		ps.advance()
-	}
-}
-
-func opPrior(kind token.TokenKind) (prior int, right bool, ok bool) {
-	switch kind {
-	case token.INCREASE, token.DECREASE:
-		return 1, false, true
-	case token.MULTIPLY, token.DIVIDE, token.REMAINDER:
-		return 2, false, true
-	case token.DEGREE:
-		return 3, true, true
-	default:
-		return 0, false, false
-	}
-}
-
-func opKind(kind token.TokenKind) ast.NodeKind {
-	switch kind {
-	case token.INCREASE, token.DECREASE:
-		return ast.KindAdditiveExpr
-	case token.MULTIPLY, token.DIVIDE, token.REMAINDER:
-		return ast.KindMultiplicativeExpr
-	case token.DEGREE:
-		return ast.KindPowerExpr
-	default:
-		return ast.KindInvalid
 	}
 }

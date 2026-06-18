@@ -43,7 +43,7 @@ func TestParserExpr(t *testing.T) {
 		ps := New(tt.input, "main.fg")
 		ps.Run()
 
-		if ps.report.IsUse {
+		if ps.diagn.IsUse {
 			t.Errorf("[%s] Парсер вернул ошибку", tt.name)
 			continue
 		}
