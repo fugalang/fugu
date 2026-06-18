@@ -5,27 +5,25 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-
+    
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
+    - uses: actions/setup-go@v5
       with:
-        go-version: '1.24'
+        go-version: '1.25.6'
         cache: true
 
     - name: Build
       working-directory: fugu
       run: |
-        go mod tidy
+        go mod download
         go generate ./pkg/parser/action
         go build -v ./...
 
     - name: Test
-      run: |
-        cd fugu
-        go test -v -race ./...
+      working-directory: fugu
+      run: go test -v -race ./...
