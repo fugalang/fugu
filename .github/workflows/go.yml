@@ -20,6 +20,7 @@ jobs:
 
     - name: Build
       run: |
+        ls
         cd fugu
         go mod download
         go generate ./pkg/parser/action
