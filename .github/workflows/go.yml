@@ -22,7 +22,8 @@ jobs:
       run: |
         ls
         cd fugu
-        go mod download
+        ls
+        go mod tidy
         go generate ./pkg/parser/action
         go build -v ./...
 
