@@ -21,7 +21,6 @@ jobs:
       working-directory: fugu
       run: |
         go mod download
-        go generate ./pkg/parser/action
         go build -v ./...
 
     - name: Test
