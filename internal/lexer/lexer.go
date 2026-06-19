@@ -1,0 +1,545 @@
+package lexer
+
+import (
+	"unicode"
+	"unicode/utf8"
+
+	"github.com/fugalang/fugu/internal/token"
+)
+
+type Lexer struct {
+	input []byte
+	rn    rune // текущая rune
+
+	curPos         int // абсолютное смещение c начала файла
+	tokStart       int // абсолютное смещение до начала токена который разбираеться прямо сейчас
+	tokStartLine   int // номер строки начала токена
+	tokStartColumn int // номер колонки начала токена
+	pos            token.Position
+
+	savePoint saveLexer
+	// diagn     *diagnostics.Diagnostics
+}
+
+// для заморозки состояния
+type saveLexer struct {
+	rn             rune
+	curPos         int
+	tokStart       int
+	tokStartLine   int
+	tokStartColumn int
+	pos            token.Position
+}
+
+func (lex *Lexer) Reset() {
+	lex = New(lex.input, lex.pos.FileName)
+}
+
+func New(input []byte, fileName string) *Lexer {
+	lex := &Lexer{
+		input:  input,
+		curPos: 0,
+		pos: token.Position{
+			FileName: fileName,
+			Line:     1,
+			Column:   0,
+			Offset:   0,
+		},
+	}
+	// lex.diagn.Init()
+
+	lex.advance()
+	return lex
+}
+
+func (lex *Lexer) NextToken() token.Token {
+	lex.tokStart = lex.pos.Offset
+	lex.tokStartLine = lex.pos.Line
+	lex.tokStartColumn = lex.pos.Column
+
+	if lex.rn == 0 {
+		return lex.NewToken(token.EOF)
+	}
+
+	if unicode.IsSpace(lex.rn) {
+		for unicode.IsSpace(lex.rn) {
+			lex.advance()
+		}
+		return lex.NewToken(token.SPACING)
+	}
+
+	switch lex.rn {
+	case '/':
+		if lex.peekRn() == '/' {
+			return lex.readLineComment()
+		} else if lex.peekRn() == '*' {
+			return lex.readMultiLineComment()
+		} else if lex.peekRn() == '=' {
+			lex.advance().advance()
+			return lex.NewToken(token.A_DIVIDE)
+		}
+
+		lex.advance()
+		return lex.NewToken(token.DIVIDE)
+
+	case '.':
+		if lex.peekRn() == '.' {
+			lex.advance() // едим первую .
+			if lex.peekRn() == '=' {
+				lex.advance().advance()
+				return lex.NewToken(token.RANGE_INCL)
+			} else if lex.peekRn() == '<' {
+				lex.advance().advance()
+				return lex.NewToken(token.RANGE_HALF_OPEN)
+			} else if lex.peekRn() == '.' {
+				lex.advance().advance()
+				return lex.NewToken(token.OP_ARRAY)
+			}
+			lex.advance()
+			return lex.NewToken(token.OP_RANGE)
+		}
+		lex.advance()
+		return lex.NewToken(token.DOT)
+
+	case '<':
+		if lex.peekRn() == '<' {
+			lex.advance().advance()
+			return lex.NewToken(token.SHR_LESS)
+		} else if lex.peekRn() == '=' {
+			lex.advance().advance()
+			return lex.NewToken(token.LESS_EQUAL)
+		}
+		lex.advance()
+		return lex.NewToken(token.LESS)
+
+	case '>':
+		if lex.peekRn() == '>' {
+			lex.advance().advance()
+			return lex.NewToken(token.SHR_GREATER)
+		} else if lex.peekRn() == '=' {
+			lex.advance().advance()
+			return lex.NewToken(token.GREATER_EQUAL)
+		}
+		lex.advance()
+		return lex.NewToken(token.GREATER)
+
+	case '-':
+		if lex.peekRn() == '=' {
+			lex.advance().advance()
+			return lex.NewToken(token.A_DECREASE)
+		} else if lex.peekRn() == '>' {
+			lex.advance().advance()
+			return lex.NewToken(token.OP_RETURN)
+		}
+
+		lex.advance()
+		return lex.NewToken(token.DECREASE)
+
+	case '+':
+		if lex.peekRn() == '=' {
+			lex.advance().advance()
+			return lex.NewToken(token.A_INCREASE)
+		}
+		lex.advance()
+		return lex.NewToken(token.INCREASE)
+
+	case '*':
+		if lex.peekRn() == '=' {
+			lex.advance().advance()
+			return lex.NewToken(token.A_MULTIPLY)
+		}
+		lex.advance()
+		return lex.NewToken(token.MULTIPLY)
+
+	case '%':
+		if lex.peekRn() == '=' {
+			lex.advance().advance()
+			return lex.NewToken(token.A_REMAINDER)
+		}
+		lex.advance()
+		return lex.NewToken(token.REMAINDER)
+
+	case '^':
+		if lex.peekRn() == '=' {
+			lex.advance().advance()
+			return lex.NewToken(token.A_DEGREE)
+		}
+		lex.advance()
+		return lex.NewToken(token.DEGREE)
+
+	case '~':
+		lex.advance()
+		return lex.NewToken(token.BITWISE_NOT)
+
+	case '&':
+		if lex.peekRn() == '&' {
+			lex.advance().advance()
+			return lex.NewToken(token.AND)
+		}
+		lex.advance()
+		return lex.NewToken(token.TAKE_LINK)
+
+	case '!':
+		if lex.peekRn() == '=' {
+			lex.advance().advance()
+			return lex.NewToken(token.NOT_EQUAL)
+		}
+		lex.advance()
+		return lex.NewToken(token.NOT)
+
+	case '?':
+		if lex.peekRn() == ':' {
+			lex.advance().advance()
+			return lex.NewToken(token.DEFAULT)
+		} else if lex.peekRn() == '.' {
+			lex.advance().advance()
+			return lex.NewToken(token.SAFE_DOT)
+		}
+
+	case '=':
+		if lex.peekRn() == '=' {
+			lex.advance().advance()
+			return lex.NewToken(token.LIKEN)
+		} else if lex.peekRn() == '>' {
+			lex.advance().advance()
+			return lex.NewToken(token.GOES_OVER)
+		}
+
+		lex.advance()
+		return lex.NewToken(token.REDEFINITION)
+
+	case '|':
+		if lex.peekRn() == '|' {
+			lex.advance().advance()
+			return lex.NewToken(token.OR)
+		} else if lex.peekRn() == '>' {
+			lex.advance().advance()
+			return lex.NewToken(token.PIPE)
+		}
+
+	case ':':
+		if lex.peekRn() == '=' {
+			lex.advance().advance()
+			return lex.NewToken(token.APPROPRIATE)
+		}
+
+		lex.advance()
+		return lex.NewToken(token.COLON)
+
+	case '(':
+		lex.advance()
+		return lex.NewToken(token.L_PAREN)
+
+	case ')':
+		lex.advance()
+		return lex.NewToken(token.R_PAREN)
+
+	case '{':
+		lex.advance()
+		return lex.NewToken(token.L_BRACE)
+
+	case '}':
+		lex.advance()
+		return lex.NewToken(token.R_BRACE)
+
+	case '[':
+		lex.advance()
+		return lex.NewToken(token.L_BRACK)
+
+	case ']':
+		lex.advance()
+		return lex.NewToken(token.R_BRACK)
+
+	case ';':
+		lex.advance()
+		return lex.NewToken(token.END)
+
+	case ',':
+		lex.advance()
+		return lex.NewToken(token.COMMA)
+
+	case '"':
+		return lex.readString()
+	case '`':
+		return lex.readRawString()
+
+	case '\'':
+		return lex.readChar()
+
+	default:
+		if unicode.IsDigit(lex.rn) {
+			return lex.readNumber()
+		} else if unicode.IsLetter(lex.rn) || lex.rn == '_' {
+			for unicode.IsLetter(lex.rn) || unicode.IsDigit(lex.rn) || lex.rn == '_' {
+				lex.advance()
+			}
+
+			return lex.NewToken(token.SearchKeyword(lex.input[lex.tokStart:lex.pos.Offset]))
+		}
+
+		lex.advance()
+		return lex.NewToken(token.ILLEGAL)
+
+	}
+
+	return lex.NewToken(token.ILLEGAL)
+}
+
+func (lex *Lexer) readLineComment() token.Token {
+	lex.advance().advance() // '//'
+
+	// останавливаемся перед '\n'
+	for lex.rn != '\n' && lex.rn != 0 {
+		lex.advance()
+	}
+
+	return lex.NewToken(token.COMMENT)
+}
+
+func (lex *Lexer) readMultiLineComment() token.Token {
+	lex.advance().advance() // '/*'
+
+	lex.freezing()
+
+	for {
+		if lex.rn == 0 {
+			tk := lex.NewToken(token.ILLEGAL)
+			// lex.diagn.SendTk(diagnostics.LexerNoClosing, tk)
+			lex.unfreeze()
+			lex.stabilization()
+			return tk
+		}
+
+		if lex.rn == '*' && lex.peekRn() == '/' {
+			lex.advance().advance() // '*', '/'
+			break
+		}
+
+		lex.advance()
+	}
+
+	return lex.NewToken(token.M_COMMENT)
+}
+
+func (lex *Lexer) readString() token.Token {
+	lex.advance() // '"'
+	isTemplate := false
+
+	lex.freezing()
+
+	for lex.rn != '"' && lex.rn != 0 {
+		if lex.rn == '\\' {
+			lex.advance().advance()
+			continue
+		}
+
+		if lex.rn == '$' && lex.peekRn() == '{' {
+			isTemplate = true
+		}
+
+		lex.advance()
+	}
+
+	if lex.rn == 0 {
+		tk := lex.NewToken(token.ILLEGAL)
+		// lex.diagn.SendTk(diagnostics.LexerNoClosing, tk)
+		lex.unfreeze()
+		lex.stabilization()
+		return tk
+	}
+
+	lex.advance() // '"'
+
+	if isTemplate {
+		return lex.NewToken(token.T_STRING)
+	}
+	return lex.NewToken(token.STRING)
+}
+
+func (lex *Lexer) readRawString() token.Token {
+	lex.advance() // '`'
+
+	lex.freezing()
+
+	for lex.rn != '`' && lex.rn != 0 {
+		lex.advance()
+	}
+
+	if lex.rn == 0 {
+		tk := lex.NewToken(token.ILLEGAL)
+		// lex.diagn.SendTk(diagnostics.LexerNoClosing, tk)
+		lex.unfreeze()
+		lex.stabilization()
+		return tk
+	}
+
+	lex.advance()
+	return lex.NewToken(token.RAW_STRING)
+}
+
+func (lex *Lexer) readChar() token.Token {
+	lex.advance()
+
+	if lex.rn == '\\' {
+		lex.advance().advance()
+	} else if lex.rn != '\'' && lex.rn != 0 {
+		lex.advance()
+	}
+
+	if lex.rn != '\'' {
+		return lex.NewToken(token.ILLEGAL)
+	}
+
+	lex.advance()
+	return lex.NewToken(token.CHARACTER)
+}
+
+func (lex *Lexer) readNumber() token.Token {
+	isFloat := false
+	isIdent := false
+
+	for unicode.IsDigit(lex.rn) || unicode.IsLetter(lex.rn) || lex.rn == '_' || lex.rn == '.' {
+
+		if lex.rn == '.' {
+			if isIdent || isFloat {
+				break
+			}
+			if !unicode.IsDigit(lex.peekRn()) {
+				break
+			}
+			isFloat = true
+		}
+
+		if unicode.IsLetter(lex.rn) || lex.rn == '_' {
+			isIdent = true
+		}
+
+		lex.advance()
+	}
+
+	literal := lex.input[lex.tokStart:lex.pos.Offset]
+
+	if isIdent {
+		if literal[len(literal)-1] == 'i' && (!isFloat || len(literal) > 2) {
+			onlyDigits := true
+			for i := 0; i < len(literal)-1; i++ {
+				if (literal[i] < '0' || literal[i] > '9') && literal[i] != '.' {
+					onlyDigits = false
+					break
+				}
+			}
+			if onlyDigits {
+				return lex.NewToken(token.IMAGINARY)
+			}
+		}
+
+		return lex.NewToken(token.IDENTIFIER)
+	}
+
+	if isFloat {
+		return lex.NewToken(token.FLOATING)
+	}
+	return lex.NewToken(token.INTEGER)
+}
+
+func (lex *Lexer) stabilization() {
+	tkws := map[string]bool{
+		"FN":     true,
+		"IF":     true,
+		"ELSE":   true,
+		"SWITCH": true,
+		"CASE":   true,
+		"RETURN": true,
+		"ENUM":   true,
+		"SELECT": true,
+		"SUNC":   true,
+		"UNSAFE": true,
+	}
+
+	for {
+		lex.freezing()
+		tk := lex.NextToken()
+
+		if tk.Kind == token.EOF {
+			return
+		} else if tk.Kind == token.SPACING || tk.Kind == token.COMMENT || tk.Kind == token.M_COMMENT {
+			continue
+		} else if tkws[tk.Kind.String()] {
+			lex.unfreeze()
+			return
+		} else if tk.Kind == token.R_BRACE || tk.Kind == token.END {
+			lex.unfreeze()
+			return
+		}
+	}
+}
+
+func (lex *Lexer) advance() *Lexer {
+	if lex.curPos >= len(lex.input) {
+		lex.rn = 0 // \x00
+		lex.pos.Offset = lex.curPos
+		return lex
+	}
+
+	r, size := utf8.DecodeRune(lex.input[lex.curPos:])
+
+	lex.rn = r
+	lex.pos.Offset = lex.curPos
+	lex.curPos += size
+
+	if lex.rn == '\n' {
+		lex.pos.Line++
+		lex.pos.Column = 1
+	} else {
+		lex.pos.Column++
+	}
+
+	return lex
+}
+
+// возвращает следущий симвл после Lexer.curPos
+func (lex *Lexer) peekRn() rune {
+	if lex.curPos >= len(lex.input) {
+		return 0
+	}
+
+	r, _ := utf8.DecodeRune(lex.input[lex.curPos:])
+
+	return r
+}
+
+func (lex *Lexer) NewToken(kind token.TokenKind) token.Token {
+	return token.Token{
+		Kind: kind,
+		Pos: token.Position{
+			FileName: lex.pos.FileName,
+			Line:     lex.tokStartLine,
+			Column:   lex.tokStartColumn,
+			Offset:   lex.tokStart,
+		},
+		Start: lex.tokStart,
+		End:   lex.pos.Offset,
+	}
+}
+
+// заморозить состояния
+func (lex *Lexer) freezing() {
+	lex.savePoint = saveLexer{
+		rn:             lex.rn,
+		curPos:         lex.curPos,
+		tokStart:       lex.tokStart,
+		tokStartLine:   lex.tokStartLine,
+		tokStartColumn: lex.tokStartColumn,
+		pos:            lex.pos,
+	}
+}
+
+// разморозить :)
+func (lex *Lexer) unfreeze() {
+	lex.rn = lex.savePoint.rn
+	lex.curPos = lex.savePoint.curPos
+	lex.tokStart = lex.savePoint.tokStart
+	lex.tokStartLine = lex.savePoint.tokStartLine
+	lex.tokStartColumn = lex.savePoint.tokStartColumn
+	lex.pos = lex.savePoint.pos
+}
