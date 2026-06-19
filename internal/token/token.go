@@ -220,16 +220,16 @@ func Group(tk TokenKind) TokenKind {
 type Token struct {
 	Kind  TokenKind
 	Pos   Position // начало токена
-	Start int      // абсолютное смещение до начала токена
-	End   int      // абсолютное смещение до конца токена
+	Start uint64   // абсолютное смещение до начала токена
+	End   uint64   // абсолютное смещение до конца токена
 }
 
 // структура указывающая позицию в коде токена
 type Position struct {
 	FileName string
-	Line     int
-	Column   int
-	Offset   int
+	Line     uint64
+	Column   uint64
+	Offset   uint64
 }
 
 func (tk Token) Literal(source *[]byte) []byte {

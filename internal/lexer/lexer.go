@@ -4,6 +4,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/fugalang/fugu/internal/diagnostics"
+	"github.com/fugalang/fugu/internal/diagnostics/errors"
 	"github.com/fugalang/fugu/internal/token"
 )
 
@@ -11,23 +13,23 @@ type Lexer struct {
 	input []byte
 	rn    rune // текущая rune
 
-	curPos         int // абсолютное смещение c начала файла
-	tokStart       int // абсолютное смещение до начала токена который разбираеться прямо сейчас
-	tokStartLine   int // номер строки начала токена
-	tokStartColumn int // номер колонки начала токена
+	curPos         uint64 // абсолютное смещение c начала файла
+	tokStart       uint64 // абсолютное смещение до начала токена который разбираеться прямо сейчас
+	tokStartLine   uint64 // номер строки начала токена
+	tokStartColumn uint64 // номер колонки начала токена
 	pos            token.Position
 
 	savePoint saveLexer
-	// diagn     *diagnostics.Diagnostics
+	da        *diagnostics.DiagnosticArena
 }
 
 // для заморозки состояния
 type saveLexer struct {
 	rn             rune
-	curPos         int
-	tokStart       int
-	tokStartLine   int
-	tokStartColumn int
+	curPos         uint64
+	tokStart       uint64
+	tokStartLine   uint64
+	tokStartColumn uint64
 	pos            token.Position
 }
 
@@ -42,7 +44,10 @@ func New(input []byte, fileName string) *Lexer {
 			Offset:   0,
 		},
 	}
-	// lex.diagn.Init()
+
+	lex.da = &diagnostics.DiagnosticArena{
+		Source: string(lex.input),
+	}
 
 	lex.advance()
 	return lex
@@ -304,7 +309,8 @@ func (lex *Lexer) readMultiLineComment() token.Token {
 	for {
 		if lex.rn == 0 {
 			tk := lex.NewToken(token.ILLEGAL)
-			// lex.diagn.SendTk(diagnostics.LexerNoClosing, tk)
+			lex.da.AddError(errors.Errors[2].Update(tk))
+			lex.da.Print()
 			lex.unfreeze()
 			lex.stabilization()
 			return tk
@@ -342,7 +348,8 @@ func (lex *Lexer) readString() token.Token {
 
 	if lex.rn == 0 {
 		tk := lex.NewToken(token.ILLEGAL)
-		// lex.diagn.SendTk(diagnostics.LexerNoClosing, tk)
+		lex.da.AddError(errors.Errors[2].Update(tk))
+		lex.da.Print()
 		lex.unfreeze()
 		lex.stabilization()
 		return tk
@@ -367,7 +374,8 @@ func (lex *Lexer) readRawString() token.Token {
 
 	if lex.rn == 0 {
 		tk := lex.NewToken(token.ILLEGAL)
-		// lex.diagn.SendTk(diagnostics.LexerNoClosing, tk)
+		lex.da.AddError(errors.Errors[2].Update(tk))
+		lex.da.Print()
 		lex.unfreeze()
 		lex.stabilization()
 		return tk
@@ -452,7 +460,7 @@ func (lex *Lexer) stabilization() {
 		"RETURN": true,
 		"ENUM":   true,
 		"SELECT": true,
-		"SUNC":   true,
+		"SYNC":   true,
 		"UNSAFE": true,
 	}
 
@@ -475,7 +483,7 @@ func (lex *Lexer) stabilization() {
 }
 
 func (lex *Lexer) advance() *Lexer {
-	if lex.curPos >= len(lex.input) {
+	if lex.curPos >= uint64(len(lex.input)) {
 		lex.rn = 0 // \x00
 		lex.pos.Offset = lex.curPos
 		return lex
@@ -485,7 +493,7 @@ func (lex *Lexer) advance() *Lexer {
 
 	lex.rn = r
 	lex.pos.Offset = lex.curPos
-	lex.curPos += size
+	lex.curPos += uint64(size)
 
 	if lex.rn == '\n' {
 		lex.pos.Line++
@@ -499,7 +507,7 @@ func (lex *Lexer) advance() *Lexer {
 
 // возвращает следущий симвл после Lexer.curPos
 func (lex *Lexer) peekRn() rune {
-	if lex.curPos >= len(lex.input) {
+	if lex.curPos >= uint64(len(lex.input)) {
 		return 0
 	}
 

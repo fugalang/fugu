@@ -2,6 +2,8 @@ package color
 
 import "fmt"
 
+var IsUseColor = true
+
 const (
 	ansiReset = "\033[0m"
 
@@ -34,6 +36,9 @@ const (
 )
 
 func color(code string, a any) string {
+	if !IsUseColor {
+		return fmt.Sprint(a)
+	}
 	return code + fmt.Sprint(a) + ansiReset
 }
 
