@@ -4,6 +4,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/fugalang/fugu/internal/diagnostics"
+	"github.com/fugalang/fugu/internal/diagnostics/errors"
 	"github.com/fugalang/fugu/internal/token"
 )
 
@@ -18,7 +20,7 @@ type Lexer struct {
 	pos            token.Position
 
 	savePoint saveLexer
-	// diagn     *diagnostics.Diagnostics
+	da        *diagnostics.DiagnosticArena
 }
 
 // для заморозки состояния
@@ -42,7 +44,10 @@ func New(input []byte, fileName string) *Lexer {
 			Offset:   0,
 		},
 	}
-	// lex.diagn.Init()
+
+	lex.da = &diagnostics.DiagnosticArena{
+		Source: string(lex.input),
+	}
 
 	lex.advance()
 	return lex
@@ -304,7 +309,8 @@ func (lex *Lexer) readMultiLineComment() token.Token {
 	for {
 		if lex.rn == 0 {
 			tk := lex.NewToken(token.ILLEGAL)
-			// lex.diagn.SendTk(diagnostics.LexerNoClosing, tk)
+			lex.da.AddError(errors.Errors[2].Update(tk))
+			lex.da.Print()
 			lex.unfreeze()
 			lex.stabilization()
 			return tk
@@ -342,7 +348,8 @@ func (lex *Lexer) readString() token.Token {
 
 	if lex.rn == 0 {
 		tk := lex.NewToken(token.ILLEGAL)
-		// lex.diagn.SendTk(diagnostics.LexerNoClosing, tk)
+		lex.da.AddError(errors.Errors[2].Update(tk))
+		lex.da.Print()
 		lex.unfreeze()
 		lex.stabilization()
 		return tk
@@ -367,7 +374,8 @@ func (lex *Lexer) readRawString() token.Token {
 
 	if lex.rn == 0 {
 		tk := lex.NewToken(token.ILLEGAL)
-		// lex.diagn.SendTk(diagnostics.LexerNoClosing, tk)
+		lex.da.AddError(errors.Errors[2].Update(tk))
+		lex.da.Print()
 		lex.unfreeze()
 		lex.stabilization()
 		return tk
