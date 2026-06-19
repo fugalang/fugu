@@ -31,10 +31,6 @@ type saveLexer struct {
 	pos            token.Position
 }
 
-func (lex *Lexer) Reset() {
-	lex = New(lex.input, lex.pos.FileName)
-}
-
 func New(input []byte, fileName string) *Lexer {
 	lex := &Lexer{
 		input:  input,
@@ -50,6 +46,10 @@ func New(input []byte, fileName string) *Lexer {
 
 	lex.advance()
 	return lex
+}
+
+func (lex *Lexer) Reset() {
+	lex = New(lex.input, lex.pos.FileName)
 }
 
 func (lex *Lexer) NextToken() token.Token {
