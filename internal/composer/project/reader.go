@@ -7,7 +7,6 @@ import (
 	"strings"
 )
 
-// File help fn
 func CheckProject(dir string) bool {
 	info, err := os.Stat(dir)
 	if err != nil {

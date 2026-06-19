@@ -12,7 +12,7 @@ const (
 	DirLibs        = DirNameProject + "/cache/libs/"
 	PrefixLibrary  = ".flc"
 
-	NameFileConfig = "project.cgf"
+	NameFileConfig = ".cgf"
 )
 
 func InitProject(name string) *Project {

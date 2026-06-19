@@ -11,10 +11,10 @@ type Lexer struct {
 	input []byte
 	rn    rune // текущая rune
 
-	curPos         int // абсолютное смещение c начала файла
-	tokStart       int // абсолютное смещение до начала токена который разбираеться прямо сейчас
-	tokStartLine   int // номер строки начала токена
-	tokStartColumn int // номер колонки начала токена
+	curPos         uint64 // абсолютное смещение c начала файла
+	tokStart       uint64 // абсолютное смещение до начала токена который разбираеться прямо сейчас
+	tokStartLine   uint64 // номер строки начала токена
+	tokStartColumn uint64 // номер колонки начала токена
 	pos            token.Position
 
 	savePoint saveLexer
@@ -24,10 +24,10 @@ type Lexer struct {
 // для заморозки состояния
 type saveLexer struct {
 	rn             rune
-	curPos         int
-	tokStart       int
-	tokStartLine   int
-	tokStartColumn int
+	curPos         uint64
+	tokStart       uint64
+	tokStartLine   uint64
+	tokStartColumn uint64
 	pos            token.Position
 }
 
@@ -452,7 +452,7 @@ func (lex *Lexer) stabilization() {
 		"RETURN": true,
 		"ENUM":   true,
 		"SELECT": true,
-		"SUNC":   true,
+		"SYNC":   true,
 		"UNSAFE": true,
 	}
 
@@ -475,7 +475,7 @@ func (lex *Lexer) stabilization() {
 }
 
 func (lex *Lexer) advance() *Lexer {
-	if lex.curPos >= len(lex.input) {
+	if lex.curPos >= uint64(len(lex.input)) {
 		lex.rn = 0 // \x00
 		lex.pos.Offset = lex.curPos
 		return lex
@@ -485,7 +485,7 @@ func (lex *Lexer) advance() *Lexer {
 
 	lex.rn = r
 	lex.pos.Offset = lex.curPos
-	lex.curPos += size
+	lex.curPos += uint64(size)
 
 	if lex.rn == '\n' {
 		lex.pos.Line++
@@ -499,7 +499,7 @@ func (lex *Lexer) advance() *Lexer {
 
 // возвращает следущий симвл после Lexer.curPos
 func (lex *Lexer) peekRn() rune {
-	if lex.curPos >= len(lex.input) {
+	if lex.curPos >= uint64(len(lex.input)) {
 		return 0
 	}
 
