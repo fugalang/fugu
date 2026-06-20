@@ -9,8 +9,8 @@ import (
 	"github.com/fugalang/fugu/pkg/reader"
 )
 
-func Run(p *project.Project) (*project.Project, error) {
-	if len(os.Args) < 4 {
+func Build(p *project.Project) (*project.Project, error) {
+	if len(os.Args) < 3 {
 		return Help(p)
 	}
 	switch os.Args[2] {
@@ -20,7 +20,7 @@ func Run(p *project.Project) (*project.Project, error) {
 			fmt.Println(color.PastelYellow("[!] Нет необходимости использовать один и тот же флаг дважды"))
 		}
 		NoCache = true
-		return Run(p)
+		return Build(p)
 	default:
 		content, err := reader.ReadRelativelyFile(os.Args[2])
 		if err != nil {

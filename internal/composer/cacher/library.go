@@ -3,27 +3,19 @@ package cacher
 import (
 	"strings"
 
-	"github.com/fugalang/fugu/internal/diagnostics"
+	d "github.com/fugalang/fugu/internal/diagnostics"
 	"github.com/fugalang/fugu/internal/diagnostics/errors"
 	"github.com/fugalang/fugu/internal/library"
-	"github.com/fugalang/fugu/internal/token"
 )
 
 func ParseLibraryCach(content []byte, path string) library.Library {
 	cont := toFields(content)
 	if len(cont) < 4 {
-		da := diagnostics.DiagnosticArena{}
-		err := errors.Errors[3].Update(token.Token{
-			Pos: token.Position{
-				FileName: "LOADER",
-				Line:     0,
-			},
-		})
-		err.Description = []string{
+		err := errors.Errors[3].IU("LOADER", []string{
 			"не удалось загрузить библиотеку. причина ошибки: не коректный формат файла кэша.",
-		}
-		da.AddError(err)
-		da.Print()
+		})
+		d.Da.AddError(err)
+		d.Da.Print()
 		return library.Library{}
 	}
 

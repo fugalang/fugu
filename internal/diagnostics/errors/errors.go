@@ -52,6 +52,15 @@ var Errors = []Error{
 			"ошибка выполнения команды: ",
 		},
 	},
+	{
+		Code:     5,
+		CodeName: "ParsingError",
+		Message:  "ошибка разбора",
+		Arrow:    "BLOCK=FALSE",
+		Description: []string{
+			"ожидалось: было получино:",
+		},
+	},
 }
 
 type Error struct {
@@ -70,5 +79,12 @@ func (e Error) Update(tk token.Token) Error {
 	e.Start = tk.Start
 	e.End = tk.End
 	e.Pos = tk.Pos
+	return e
+}
+
+func (e Error) IU(fileModule string, description []string) Error {
+	e.Description = description
+	e.Pos.FileName = fileModule
+	e.Pos.Line = 0
 	return e
 }

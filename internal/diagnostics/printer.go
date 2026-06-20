@@ -18,6 +18,8 @@ type DiagnosticArena struct {
 	Errors []errors.Error
 }
 
+var Da = DiagnosticArena{}
+
 func (a *DiagnosticArena) AddError(err errors.Error) {
 	a.Errors = append(a.Errors, err)
 }
@@ -40,7 +42,11 @@ func (a *DiagnosticArena) Print() {
 		sb.WriteString(err.Message)
 		sb.WriteString("\n")
 
-		sb.WriteString(color.Blue("──> "))
+		if err.Pos.Line != 0 {
+			sb.WriteString(color.Blue("──> "))
+		} else {
+			sb.WriteString(color.Blue("Module: "))
+		}
 		sb.WriteString(color.BoldBlue(err.Pos.FileName))
 		sb.WriteString(" ")
 		if err.Pos.Line != 0 {
