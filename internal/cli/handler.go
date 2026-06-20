@@ -6,14 +6,15 @@ import (
 	"github.com/fugalang/fugu/internal/composer/project"
 )
 
-type Command func(p *project.Project) error
+type Command func(p *project.Project) (*project.Project, error)
 
 var commands = map[string]Command{
 	"run":  Run,
-	"help": Run,
+	"init": Init,
+	"help": Help,
 }
 
-func HandlerCmd(p *project.Project) error {
+func HandlerCmd(p *project.Project) (*project.Project, error) {
 	if len(os.Args) < 1 {
 		cmd := commands[os.Args[1]]
 		return cmd(p)

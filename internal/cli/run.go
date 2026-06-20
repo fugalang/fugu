@@ -1,26 +1,23 @@
 package cli
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/fugalang/fugu/internal/composer/project"
 	"github.com/fugalang/fugu/pkg/reader"
 )
 
-func Run(p *project.Project) error {
+func Run(p *project.Project) (*project.Project, error) {
 	if len(os.Args) < 2 {
-		// TODO help
-		return nil
+		return Help(p)
 	}
 	switch os.Args[2] {
 	default:
 		content, err := reader.ReadRelativelyFile(os.Args[2])
 		if err != nil {
-			return err
+			return p, err
 		}
 		_ = content
-		fmt.Printf(string(content))
-		return nil
+		return p, nil
 	}
 }

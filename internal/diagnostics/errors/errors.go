@@ -34,6 +34,24 @@ var Errors = []Error{
 			"возможно вы забыли закрыть строку или комментарий, проверьте соответствующие символы в коде",
 		},
 	},
+	{
+		Code:     3,
+		CodeName: "ErrorLoadLibrary",
+		Message:  "не удалось загрузить библиатеку",
+		Arrow:    "BLOCK=FALSE",
+		Description: []string{
+			"не удалось загрузить библиотеку. Причина ошибки:",
+		},
+	},
+	{
+		Code:     4,
+		CodeName: "ExecutingCommands",
+		Message:  "не удалось выполнить команду",
+		Arrow:    "BLOCK=FALSE",
+		Description: []string{
+			"ошибка выполнения команды: ",
+		},
+	},
 }
 
 type Error struct {

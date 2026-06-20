@@ -13,7 +13,7 @@ func TestPrintDiagnostics(t *testing.T) {
 print("Hello, World!")
 }`}
 
-	arena.AddError(errors.Errors[2].Update(token.Token{
+	arena.AddError(errors.Errors[3].Update(token.Token{
 		Kind: token.FN,
 		Pos: token.Position{
 			FileName: "main.fg",

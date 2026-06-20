@@ -43,9 +43,11 @@ func (a *DiagnosticArena) Print() {
 		sb.WriteString(color.Blue("──> "))
 		sb.WriteString(color.BoldBlue(err.Pos.FileName))
 		sb.WriteString(" ")
-		sb.WriteString(color.BoldBlue(fmt.Sprint(err.Pos.Line)))
-		sb.WriteString(color.BoldBlue(":"))
-		sb.WriteString(color.BoldBlue(fmt.Sprint(err.Pos.Column)))
+		if err.Pos.Line != 0 {
+			sb.WriteString(color.BoldBlue(fmt.Sprint(err.Pos.Line)))
+			sb.WriteString(color.BoldBlue(":"))
+			sb.WriteString(color.BoldBlue(fmt.Sprint(err.Pos.Column)))
+		}
 		sb.WriteString("\n\n")
 
 		if err.Arrow != "BLOCK=FALSE" {
@@ -101,9 +103,8 @@ func (a *DiagnosticArena) Print() {
 			sb.WriteString("\n")
 		}
 
-		sb.WriteString(color.BoldGreen("help:\n"))
 		for _, desc := range err.Description {
-			sb.WriteString(color.Black("  • "))
+			sb.WriteString(color.BoldGreen("• "))
 			sb.WriteString(desc)
 			sb.WriteString("\n")
 		}
