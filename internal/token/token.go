@@ -1,13 +1,13 @@
 package token
 
-type TokenKind uint16
+type Kind uint16
 
 const (
-	_         TokenKind = iota
-	ILLEGAL             // неизвестный токен
-	COMMENT             // comment
-	M_COMMENT           // /* comment */
-	SPACING             // whitespace
+	_         Kind = iota
+	ILLEGAL        // неизвестный токен
+	COMMENT        // comment
+	M_COMMENT      // /* comment */
+	SPACING        // whitespace
 	EOF
 
 	// Группы
@@ -156,7 +156,7 @@ const (
 	EndToken
 )
 
-func (tk *TokenKind) Group() TokenKind {
+func (tk *Kind) Group() Kind {
 	switch *tk {
 	case INTEGER, IMAGINARY, FLOATING:
 		return GNUMBER
@@ -171,10 +171,10 @@ func (tk *TokenKind) Group() TokenKind {
 	}
 }
 
-func Expand(tk TokenKind) []TokenKind {
+func Expand(tk Kind) []Kind {
 	switch tk {
 	case GLITERAL:
-		return []TokenKind{
+		return []Kind{
 			GNUMBER,
 			GSTRING,
 			INTEGER,
@@ -187,20 +187,20 @@ func Expand(tk TokenKind) []TokenKind {
 			IDENTIFIER,
 		}
 	case GNUMBER:
-		return []TokenKind{
+		return []Kind{
 			INTEGER,
 			IMAGINARY,
 			FLOATING,
 		}
 	case GSTRING:
-		return []TokenKind{
+		return []Kind{
 			STRING,
 			T_STRING,
 			RAW_STRING,
 			CHARACTER,
 		}
 	case GARITHMETIC:
-		return []TokenKind{
+		return []Kind{
 			DECREASE,
 			INCREASE,
 			MULTIPLY,
@@ -213,12 +213,12 @@ func Expand(tk TokenKind) []TokenKind {
 	}
 }
 
-func Group(tk TokenKind) TokenKind {
+func Group(tk Kind) Kind {
 	return tk.Group()
 }
 
 type Token struct {
-	Kind  TokenKind
+	Kind  Kind
 	Pos   Position // начало токена
 	Start uint64   // абсолютное смещение до начала токена
 	End   uint64   // абсолютное смещение до конца токена
@@ -251,7 +251,7 @@ func (tk Token) Literal(source *[]byte) []byte {
 	}
 }
 
-var keywords = map[string]TokenKind{
+var keywords = map[string]Kind{
 	// Объявление модулей и использование
 	"module": MODULE,
 	"use":    USE,
@@ -308,14 +308,14 @@ var keywords = map[string]TokenKind{
 
 // проверяет является ли строка ключевым словом.
 // Если да возвращает его тип, если нет возвращает простой IDENTIFIER.
-func SearchKeyword(ident []byte) TokenKind {
+func SearchKeyword(ident []byte) Kind {
 	if kind, ok := keywords[string(ident)]; ok {
 		return kind
 	}
 	return IDENTIFIER
 }
 
-func (tk TokenKind) String() string {
+func (tk Kind) String() string {
 	switch tk {
 	case ILLEGAL:
 		return "ILLEGAL"

@@ -1,7 +1,12 @@
+// Package diagnostics
+//
+// Здесь допускается использование более тяжёлых по ресурсам решений,
+// поскольку этот пакет вызывается только при возникновении ошибок.
 package diagnostics
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/fugalang/fugu/internal/diagnostics/errors"
@@ -12,6 +17,8 @@ type DiagnosticArena struct {
 	Source string
 	Errors []errors.Error
 }
+
+var Da = DiagnosticArena{}
 
 func (a *DiagnosticArena) AddError(err errors.Error) {
 	a.Errors = append(a.Errors, err)
@@ -26,34 +33,48 @@ func (a *DiagnosticArena) Clear() {
 }
 
 func (a *DiagnosticArena) Print() {
-	for _, err := range a.Errors {
+	for i, err := range a.Errors {
 		var sb strings.Builder
 
-		sb.WriteString(color.BoldRed("Error["))
-		sb.WriteString(color.BoldYellow(err.CodeName))
-		sb.WriteString(color.BoldRed("]: "))
-		sb.WriteString(color.PastelYellow(err.Message))
+		sb.WriteString(color.BoldRed("× "))
+		sb.WriteString(color.BoldRed(err.CodeName))
+		sb.WriteString(color.Gray(": "))
+		sb.WriteString(err.Message)
 		sb.WriteString("\n")
 
-		sb.WriteString(color.NoteLabel(err.Pos.FileName))
+		if err.Pos.Line != 0 {
+			sb.WriteString(color.Blue("──> "))
+		} else {
+			sb.WriteString(color.Blue("Module: "))
+		}
+		sb.WriteString(color.BoldBlue(err.Pos.FileName))
 		sb.WriteString(" ")
-		sb.WriteString(fmt.Sprint(err.Pos.Line))
-		sb.WriteString(":")
-		sb.WriteString(fmt.Sprint(err.Pos.Column))
+		if err.Pos.Line != 0 {
+			sb.WriteString(color.BoldBlue(fmt.Sprint(err.Pos.Line)))
+			sb.WriteString(color.BoldBlue(":"))
+			sb.WriteString(color.BoldBlue(fmt.Sprint(err.Pos.Column)))
+		}
 		sb.WriteString("\n\n")
 
 		if err.Arrow != "BLOCK=FALSE" {
 			lines := GetLine(a.Source, int(err.Pos.Line), int(err.Pos.Line)-5)
 
+			maxLine := len(strings.Split(a.Source, "\n"))
+			width := len(strconv.Itoa(maxLine))
+
 			for i, line := range lines {
 				lineNum := int(err.Pos.Line) - len(lines) + i + 1
 
-				sb.WriteString(color.Black(fmt.Sprintf("%4d | ", lineNum)))
+				sb.WriteString(color.Black(
+					fmt.Sprintf("%*d │ ", width, lineNum),
+				))
 				sb.WriteString(line)
 				sb.WriteString("\n")
 
 				if lineNum == int(err.Pos.Line) {
-					sb.WriteString(color.Black("     | "))
+					sb.WriteString(color.Black(
+						fmt.Sprintf("%*s │ ", width, ""),
+					))
 
 					col := int(err.Pos.Column) - 1
 					if col < 0 {
@@ -70,7 +91,6 @@ func (a *DiagnosticArena) Print() {
 						sb.WriteString(" ")
 					}
 
-					// highlight range
 					length := int(err.End - err.Start)
 					if length <= 0 {
 						length = 1
@@ -81,7 +101,7 @@ func (a *DiagnosticArena) Print() {
 					}
 
 					sb.WriteString(" ")
-					sb.WriteString(color.BoldRed(err.Arrow))
+					sb.WriteString(color.PastelYellow(err.Arrow))
 					sb.WriteString("\n")
 				}
 			}
@@ -89,46 +109,15 @@ func (a *DiagnosticArena) Print() {
 			sb.WriteString("\n")
 		}
 
-		maxLineLength := 0
-
 		for _, desc := range err.Description {
-			l := len([]rune(desc))
-			if l > maxLineLength {
-				maxLineLength = l
-			}
-		}
-
-		if maxLineLength > 120 {
-			maxLineLength = 120
-		}
-
-		sb.WriteString("╭")
-		for i := 0; i < maxLineLength+2; i++ {
-			sb.WriteString("─")
-		}
-		sb.WriteString("╮\n")
-
-		for _, desc := range err.Description {
-			lineLen := len([]rune(desc))
-			pad := maxLineLength - lineLen
-
-			sb.WriteString("│ ")
+			sb.WriteString(color.BoldGreen("• "))
 			sb.WriteString(desc)
-
-			for i := 0; i < pad; i++ {
-				sb.WriteString(" ")
-			}
-
-			sb.WriteString(" │\n")
+			sb.WriteString("\n")
 		}
-
-		sb.WriteString("╰")
-		for i := 0; i < maxLineLength+2; i++ {
-			sb.WriteString("─")
-		}
-		sb.WriteString("╯\n")
+		sb.WriteString("\n")
 
 		fmt.Println(sb.String())
+		a.Errors = append(a.Errors[:i], a.Errors[i+1:]...)
 	}
 }
 

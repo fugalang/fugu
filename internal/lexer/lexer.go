@@ -33,7 +33,10 @@ type saveLexer struct {
 	pos            token.Position
 }
 
-func New(input []byte, fileName string) *Lexer {
+func New(input []byte, fileName string, da *diagnostics.DiagnosticArena) *Lexer {
+	if input == nil {
+		input = make([]byte, 0)
+	}
 	lex := &Lexer{
 		input:  input,
 		curPos: 0,
@@ -45,16 +48,14 @@ func New(input []byte, fileName string) *Lexer {
 		},
 	}
 
-	lex.da = &diagnostics.DiagnosticArena{
-		Source: string(lex.input),
-	}
+	lex.da = da
 
 	lex.advance()
 	return lex
 }
 
 func (lex *Lexer) Reset() {
-	lex = New(lex.input, lex.pos.FileName)
+	lex = New(lex.input, lex.pos.FileName, lex.da)
 }
 
 func (lex *Lexer) NextToken() token.Token {
@@ -516,7 +517,7 @@ func (lex *Lexer) peekRn() rune {
 	return r
 }
 
-func (lex *Lexer) NewToken(kind token.TokenKind) token.Token {
+func (lex *Lexer) NewToken(kind token.Kind) token.Token {
 	return token.Token{
 		Kind: kind,
 		Pos: token.Position{

@@ -1,11 +1,22 @@
-package project
+package reader
 
 import (
-	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 )
+
+func ReadRelativelyFile(path string) ([]byte, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
+	fullPath := filepath.Join(cwd, path)
+
+	return os.ReadFile(fullPath)
+}
 
 func CheckProject(dir string) bool {
 	info, err := os.Stat(dir)
@@ -25,30 +36,6 @@ func CheckProject(dir string) bool {
 	}
 }
 
-func ReadConfig(path, name string) (*Config, error) {
-	content, err := ReadFile(path, name)
-	if err != nil {
-		return nil, err
-	}
-
-	cgf := &Config{}
-	err = json.Unmarshal(content, cgf)
-	if err != nil {
-		return nil, err
-	}
-
-	return cgf, nil
-}
-
-func ReadLibrary(path, name string) ([]byte, error) {
-	content, err := ReadFile(path, name)
-	if err != nil {
-		return nil, err
-	}
-
-	return content, nil
-}
-
 func CreateFile(folder string, filename string, content []byte) error {
 	err := os.MkdirAll(folder, 0755)
 	if err != nil {
@@ -65,8 +52,8 @@ func CreateFile(folder string, filename string, content []byte) error {
 	return nil
 }
 
-func ReadFile(path, filename string) ([]byte, error) {
-	content, err := os.ReadFile(path + "/" + filename)
+func ReadFile(path, filename, prefix string) ([]byte, error) {
+	content, err := os.ReadFile(path + filename + prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -75,22 +62,7 @@ func ReadFile(path, filename string) ([]byte, error) {
 }
 
 func PathOfHome() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	rel, err := filepath.Rel(home, cwd)
-	if err != nil {
-		return "", err
-	}
-
-	return rel, nil
+	return os.Getwd()
 }
 
 func GetLibraries(dir, prefix string) ([]string, error) {
@@ -111,6 +83,8 @@ func GetLibraries(dir, prefix string) ([]string, error) {
 			libs = append(libs, name)
 		}
 	}
+
+	fmt.Println(libs)
 
 	return libs, nil
 }

@@ -3,6 +3,7 @@ package lexer
 import (
 	"testing"
 
+	"github.com/fugalang/fugu/internal/diagnostics"
 	"github.com/fugalang/fugu/internal/token"
 )
 
@@ -12,7 +13,7 @@ func TestComment(t *testing.T) {
 		name            string
 		input           []byte
 		checkSpaceTk    bool // проверка токена пробел следущим токеном
-		expectedKind    token.TokenKind
+		expectedKind    token.Kind
 		expectedLiteral []byte
 	}{
 		{
@@ -36,7 +37,9 @@ func TestComment(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		lex := New(tt.input, "main.fg")
+		lex := New(tt.input, "main.fg", &diagnostics.DiagnosticArena{
+			Source: string(tt.input),
+		})
 		tk := lex.NextToken()
 
 		if tk.Kind != tt.expectedKind {
@@ -72,7 +75,7 @@ func TestOperator(t *testing.T) {
 	tests := []struct {
 		name         string
 		input        []byte
-		expectedKind token.TokenKind
+		expectedKind token.Kind
 	}{
 		// Операторы диапазонов
 		{name: "Исключающий диапазон", input: []byte(".."), expectedKind: token.OP_RANGE},
@@ -136,7 +139,9 @@ func TestOperator(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		lex := New(tt.input, "main.fg")
+		lex := New(tt.input, "main.fg", &diagnostics.DiagnosticArena{
+			Source: string(tt.input),
+		})
 		tk := lex.NextToken()
 
 		if tk.Kind != tt.expectedKind {
@@ -151,7 +156,7 @@ func TestLiteral(t *testing.T) {
 	tests := []struct {
 		name            string
 		input           []byte
-		expectedKind    token.TokenKind
+		expectedKind    token.Kind
 		expectedLiteral []byte
 	}{
 		{name: "Идентификатор начинающийся числом", input: []byte("10pixel"), expectedKind: token.IDENTIFIER, expectedLiteral: []byte("10pixel")},
@@ -174,7 +179,9 @@ func TestLiteral(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		lex := New(tt.input, "main.fg")
+		lex := New(tt.input, "main.fg", &diagnostics.DiagnosticArena{
+			Source: string(tt.input),
+		})
 		tk := lex.NextToken()
 
 		if tk.Kind != tt.expectedKind {
@@ -195,7 +202,7 @@ func TestLexerStabilization(t *testing.T) {
 	tests := []struct {
 		name         string
 		input        []byte
-		expectedKind token.TokenKind
+		expectedKind token.Kind
 	}{
 		{
 			name:         "cтабилизация после незакрытого многострочного комментария",
@@ -216,14 +223,16 @@ if x == 5 {}`),
 	}
 
 	for _, tt := range tests {
-		l := New(tt.input, "main.fg")
+		lex := New(tt.input, "main.fg", &diagnostics.DiagnosticArena{
+			Source: string(tt.input),
+		})
 
-		firstTok := l.NextToken()
+		firstTok := lex.NextToken()
 		if firstTok.Kind != token.ILLEGAL {
 			t.Fatalf("[%s] Первый токен обязан быть ILLEGAL. Получен: %s", tt.name, firstTok.Kind.String())
 		}
 
-		secondTok := l.NextToken()
+		secondTok := lex.NextToken()
 		if secondTok.Kind != tt.expectedKind {
 			t.Errorf("[%s] Неверный тип токена после стабилизации. Ожидался: %s, получен: %s",
 				tt.name, tt.expectedKind.String(), secondTok.Kind.String())

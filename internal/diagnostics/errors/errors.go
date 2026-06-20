@@ -34,6 +34,33 @@ var Errors = []Error{
 			"возможно вы забыли закрыть строку или комментарий, проверьте соответствующие символы в коде",
 		},
 	},
+	{
+		Code:     3,
+		CodeName: "ErrorLoadLibrary",
+		Message:  "не удалось загрузить библиатеку",
+		Arrow:    "BLOCK=FALSE",
+		Description: []string{
+			"не удалось загрузить библиотеку. Причина ошибки:",
+		},
+	},
+	{
+		Code:     4,
+		CodeName: "ExecutingCommands",
+		Message:  "не удалось выполнить команду",
+		Arrow:    "BLOCK=FALSE",
+		Description: []string{
+			"ошибка выполнения команды: ",
+		},
+	},
+	{
+		Code:     5,
+		CodeName: "ParsingError",
+		Message:  "ошибка разбора",
+		Arrow:    "BLOCK=FALSE",
+		Description: []string{
+			"ожидалось: было получино:",
+		},
+	},
 }
 
 type Error struct {
@@ -52,5 +79,12 @@ func (e Error) Update(tk token.Token) Error {
 	e.Start = tk.Start
 	e.End = tk.End
 	e.Pos = tk.Pos
+	return e
+}
+
+func (e Error) IU(fileModule string, description []string) Error {
+	e.Description = description
+	e.Pos.FileName = fileModule
+	e.Pos.Line = 0
 	return e
 }
