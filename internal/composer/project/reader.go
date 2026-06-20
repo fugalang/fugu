@@ -2,6 +2,7 @@ package project
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,7 +27,7 @@ func CheckProject(dir string) bool {
 }
 
 func ReadConfig(path, name string) (*Config, error) {
-	content, err := ReadFile(path, name)
+	content, err := ReadFile(path, name, PrefixFileConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +42,7 @@ func ReadConfig(path, name string) (*Config, error) {
 }
 
 func ReadLibrary(path, name string) ([]byte, error) {
-	content, err := ReadFile(path, name)
+	content, err := ReadFile(path, name, PrefixLibrary)
 	if err != nil {
 		return nil, err
 	}
@@ -65,8 +66,8 @@ func CreateFile(folder string, filename string, content []byte) error {
 	return nil
 }
 
-func ReadFile(path, filename string) ([]byte, error) {
-	content, err := os.ReadFile(path + "/" + filename)
+func ReadFile(path, filename, prefix string) ([]byte, error) {
+	content, err := os.ReadFile(path + filename + prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -75,22 +76,7 @@ func ReadFile(path, filename string) ([]byte, error) {
 }
 
 func PathOfHome() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	rel, err := filepath.Rel(home, cwd)
-	if err != nil {
-		return "", err
-	}
-
-	return rel, nil
+	return os.Getwd()
 }
 
 func GetLibraries(dir, prefix string) ([]string, error) {
@@ -111,6 +97,8 @@ func GetLibraries(dir, prefix string) ([]string, error) {
 			libs = append(libs, name)
 		}
 	}
+
+	fmt.Println(libs)
 
 	return libs, nil
 }

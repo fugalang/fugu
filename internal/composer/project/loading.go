@@ -3,16 +3,17 @@ package project
 import (
 	"encoding/json"
 
+	"github.com/fugalang/fugu/internal/composer/cacher"
 	"github.com/fugalang/fugu/internal/library"
 )
 
 const (
-	DirNameProject = ".fugu"
-	DirConfig      = DirNameProject + "/config"
-	DirLibs        = DirNameProject + "/cache/libs/"
+	DirNameProject = ".fugu/"
+	DirConfig      = DirNameProject + "config/"
+	DirLibs        = DirNameProject + "cache/libs/"
 	PrefixLibrary  = ".flc"
 
-	NameFileConfig = ".cgf"
+	PrefixFileConfig = ".cgf"
 )
 
 func InitProject(name string) *Project {
@@ -22,7 +23,7 @@ func InitProject(name string) *Project {
 	}
 
 	if CheckProject(DirNameProject) {
-		cgf, err := ReadConfig(DirConfig, NameFileConfig)
+		cgf, err := ReadConfig(DirConfig, "")
 		if err != nil {
 			return nil
 		}
@@ -38,7 +39,7 @@ func InitProject(name string) *Project {
 	if err != nil {
 		return nil
 	}
-	err = CreateFile(DirConfig, NameFileConfig, content)
+	err = CreateFile(DirConfig, PrefixFileConfig, content)
 	if err != nil {
 		return nil
 	}
@@ -64,23 +65,22 @@ func CgfFileContentGen(nameProject string) ([]byte, error) {
 }
 
 func LoadLibraries() []library.Library {
-	libs, err := GetLibraries(DirNameProject, PrefixLibrary)
+	libs, err := GetLibraries(DirLibs, PrefixLibrary)
 	if err != nil {
 		return []library.Library{}
 	}
 
 	var libraries = []library.Library{}
-	for _, lib := range libs {
-		path, err := PathOfHome()
+	for _, libName := range libs {
+		pathHome, err := PathOfHome()
 		if err != nil {
 			return []library.Library{}
 		}
 
-		libraries = append(libraries, library.Library{
-			Name:    lib,
-			Path:    path + "/" + DirLibs + lib,
-			Version: "TODO", // TODO разобрать файл библиотеки и достать версию
-		})
+		path := pathHome + "/" + DirLibs
+
+		content, err := ReadFile(path, libName, PrefixLibrary)
+		libraries = append(libraries, cacher.ParseLibraryCach(content, path+libName+PrefixLibrary))
 	}
 
 	return libraries
