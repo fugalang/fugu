@@ -34,6 +34,9 @@ type saveLexer struct {
 }
 
 func New(input []byte, fileName string) *Lexer {
+	if input == nil {
+		input = make([]byte, 0)
+	}
 	lex := &Lexer{
 		input:  input,
 		curPos: 0,

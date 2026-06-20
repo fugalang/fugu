@@ -5,6 +5,7 @@ import (
 
 	"github.com/fugalang/fugu/internal/composer/cacher"
 	"github.com/fugalang/fugu/internal/library"
+	"github.com/fugalang/fugu/pkg/reader"
 )
 
 const (
@@ -17,12 +18,12 @@ const (
 )
 
 func InitProject(name string) *Project {
-	path, err := PathOfHome()
+	path, err := reader.PathOfHome()
 	if err != nil {
 		return nil
 	}
 
-	if CheckProject(DirNameProject) {
+	if reader.CheckProject(DirNameProject) {
 		cgf, err := ReadConfig(DirConfig, "")
 		if err != nil {
 			return nil
@@ -39,7 +40,7 @@ func InitProject(name string) *Project {
 	if err != nil {
 		return nil
 	}
-	err = CreateFile(DirConfig, PrefixFileConfig, content)
+	err = reader.CreateFile(DirConfig, PrefixFileConfig, content)
 	if err != nil {
 		return nil
 	}
@@ -65,23 +66,47 @@ func CgfFileContentGen(nameProject string) ([]byte, error) {
 }
 
 func LoadLibraries() []library.Library {
-	libs, err := GetLibraries(DirLibs, PrefixLibrary)
+	libs, err := reader.GetLibraries(DirLibs, PrefixLibrary)
 	if err != nil {
 		return []library.Library{}
 	}
 
 	var libraries = []library.Library{}
 	for _, libName := range libs {
-		pathHome, err := PathOfHome()
+		pathHome, err := reader.PathOfHome()
 		if err != nil {
 			return []library.Library{}
 		}
 
 		path := pathHome + "/" + DirLibs
 
-		content, err := ReadFile(path, libName, PrefixLibrary)
+		content, err := reader.ReadFile(path, libName, PrefixLibrary)
 		libraries = append(libraries, cacher.ParseLibraryCach(content, path+libName+PrefixLibrary))
 	}
 
 	return libraries
+}
+
+func ReadConfig(path, name string) (*Config, error) {
+	content, err := reader.ReadFile(path, name, PrefixFileConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	cgf := &Config{}
+	err = json.Unmarshal(content, cgf)
+	if err != nil {
+		return nil, err
+	}
+
+	return cgf, nil
+}
+
+func ReadLibrary(path, name string) ([]byte, error) {
+	content, err := reader.ReadFile(path, name, PrefixLibrary)
+	if err != nil {
+		return nil, err
+	}
+
+	return content, nil
 }

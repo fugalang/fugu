@@ -1,12 +1,22 @@
-package project
+package reader
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 )
+
+func ReadRelativelyFile(path string) ([]byte, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
+	fullPath := filepath.Join(cwd, path)
+
+	return os.ReadFile(fullPath)
+}
 
 func CheckProject(dir string) bool {
 	info, err := os.Stat(dir)
@@ -24,30 +34,6 @@ func CheckProject(dir string) bool {
 	} else {
 		return false
 	}
-}
-
-func ReadConfig(path, name string) (*Config, error) {
-	content, err := ReadFile(path, name, PrefixFileConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	cgf := &Config{}
-	err = json.Unmarshal(content, cgf)
-	if err != nil {
-		return nil, err
-	}
-
-	return cgf, nil
-}
-
-func ReadLibrary(path, name string) ([]byte, error) {
-	content, err := ReadFile(path, name, PrefixLibrary)
-	if err != nil {
-		return nil, err
-	}
-
-	return content, nil
 }
 
 func CreateFile(folder string, filename string, content []byte) error {
