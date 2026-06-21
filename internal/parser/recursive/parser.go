@@ -19,6 +19,9 @@ type Parser struct {
 	peekTk token.Token
 	pos    int
 
+	pn int
+	si int
+
 	Ast *ast.AstArena
 
 	da *diagnostics.DiagnosticArena
@@ -38,12 +41,12 @@ func New(input []byte, fileName string) *Parser {
 	}
 	p.lex = lexer.New(input, fileName, p.da)
 	p.advance().advance()
+	p.pos = 0
 	return p
 }
 
 func (p *Parser) Parse() *ast.AstArena {
 	for p.curTk.Kind != token.EOF {
-		fmt.Println(p.curTk.Kind.String())
 		switch p.curTk.Kind {
 		case token.MODULE:
 			p.parsModule()
@@ -69,10 +72,19 @@ func (p *Parser) advance() *Parser {
 
 		p.curTk = p.peekTk
 		p.peekTk = tk
+		p.Tokens[p.pos] = tk
 		p.pos++
-		p.Tokens = append(p.Tokens, tk)
 		return p
 	}
+}
+
+func (p *Parser) addString(s string) {
+	p.Ast.Strings[p.si] = s
+	p.si++
+}
+
+func (p *Parser) addNode(n ast.Node) {
+	p.Ast.Nodes[p.pn] = n
 }
 
 func (p *Parser) match(kind token.Kind) bool {

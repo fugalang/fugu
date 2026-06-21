@@ -8,14 +8,22 @@ import (
 func (p *Parser) parsModule() {
 	if p.eat(token.MODULE) {
 		if p.eat(token.IDENTIFIER) {
-			i := len(p.Ast.Strings)
-			p.Ast.Strings = append(p.Ast.Strings, string(p.curTk.Literal(&p.input)))
-
-			p.Ast.Nodes = append(p.Ast.Nodes, ast.Node{
-				Type: ast.Module,
-
-				Data1: i,
-			})
+			nameModule := string(p.Tokens[p.pos].Literal(&p.input))
+			p.addString(nameModule)
+			if nameModule == "main" {
+				p.addNode(ast.Node{
+					Type:  ast.Module,
+					Data1: 1,
+					Data2: p.si - 1,
+				})
+			} else {
+				p.addNode(ast.Node{
+					Type:  ast.Module,
+					Data1: 2,
+					Data2: p.si - 1,
+				})
+				return
+			}
 		} else {
 			return
 		}
