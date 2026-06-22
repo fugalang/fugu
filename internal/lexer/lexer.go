@@ -82,11 +82,11 @@ func (lex *Lexer) NextToken() token.Token {
 			return lex.readMultiLineComment()
 		} else if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.A_DIVIDE)
+			return lex.NewToken(token.DIV_ASSIGN)
 		}
 
 		lex.advance()
-		return lex.NewToken(token.DIVIDE)
+		return lex.NewToken(token.DIV)
 
 	case '.':
 		if lex.peekRn() == '.' {
@@ -113,10 +113,10 @@ func (lex *Lexer) NextToken() token.Token {
 			return lex.NewToken(token.SHR_LESS)
 		} else if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.LESS_EQUAL)
+			return lex.NewToken(token.LE)
 		}
 		lex.advance()
-		return lex.NewToken(token.LESS)
+		return lex.NewToken(token.LT)
 
 	case '>':
 		if lex.peekRn() == '>' {
@@ -124,54 +124,54 @@ func (lex *Lexer) NextToken() token.Token {
 			return lex.NewToken(token.SHR_GREATER)
 		} else if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.GREATER_EQUAL)
+			return lex.NewToken(token.GE)
 		}
 		lex.advance()
-		return lex.NewToken(token.GREATER)
+		return lex.NewToken(token.GT)
 
 	case '-':
 		if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.A_DECREASE)
+			return lex.NewToken(token.SUB_ASSIGN)
 		} else if lex.peekRn() == '>' {
 			lex.advance().advance()
-			return lex.NewToken(token.OP_RETURN)
+			return lex.NewToken(token.RTN_ARROW)
 		}
 
 		lex.advance()
-		return lex.NewToken(token.DECREASE)
+		return lex.NewToken(token.SUB)
 
 	case '+':
 		if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.A_INCREASE)
+			return lex.NewToken(token.ADD_ASSIGN)
 		}
 		lex.advance()
-		return lex.NewToken(token.INCREASE)
+		return lex.NewToken(token.ADD)
 
 	case '*':
 		if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.A_MULTIPLY)
+			return lex.NewToken(token.MUL_ASSIGN)
 		}
 		lex.advance()
-		return lex.NewToken(token.MULTIPLY)
+		return lex.NewToken(token.MUL)
 
 	case '%':
 		if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.A_REMAINDER)
+			return lex.NewToken(token.MOD_ASSIGN)
 		}
 		lex.advance()
-		return lex.NewToken(token.REMAINDER)
+		return lex.NewToken(token.MOD)
 
 	case '^':
 		if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.A_DEGREE)
+			return lex.NewToken(token.POW_ASSIGN)
 		}
 		lex.advance()
-		return lex.NewToken(token.DEGREE)
+		return lex.NewToken(token.POW)
 
 	case '~':
 		lex.advance()
@@ -183,15 +183,15 @@ func (lex *Lexer) NextToken() token.Token {
 			return lex.NewToken(token.AND)
 		}
 		lex.advance()
-		return lex.NewToken(token.TAKE_LINK)
+		return lex.NewToken(token.REF)
 
 	case '!':
 		if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.NOT_EQUAL)
+			return lex.NewToken(token.NEQ)
 		}
 		lex.advance()
-		return lex.NewToken(token.NOT)
+		return lex.NewToken(token.BANG)
 
 	case '?':
 		if lex.peekRn() == ':' {
@@ -199,20 +199,20 @@ func (lex *Lexer) NextToken() token.Token {
 			return lex.NewToken(token.DEFAULT)
 		} else if lex.peekRn() == '.' {
 			lex.advance().advance()
-			return lex.NewToken(token.SAFE_DOT)
+			return lex.NewToken(token.OPTIONAL_DOT)
 		}
 
 	case '=':
 		if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.LIKEN)
+			return lex.NewToken(token.EQ)
 		} else if lex.peekRn() == '>' {
 			lex.advance().advance()
-			return lex.NewToken(token.GOES_OVER)
+			return lex.NewToken(token.ARROW)
 		}
 
 		lex.advance()
-		return lex.NewToken(token.REDEFINITION)
+		return lex.NewToken(token.ASSIGN)
 
 	case '|':
 		if lex.peekRn() == '|' {
@@ -226,7 +226,7 @@ func (lex *Lexer) NextToken() token.Token {
 	case ':':
 		if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.APPROPRIATE)
+			return lex.NewToken(token.DEFINE)
 		}
 
 		lex.advance()
