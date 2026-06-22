@@ -35,8 +35,8 @@ func New(input []byte, fileName string) *Parser {
 			Source: string(input),
 		},
 		Ast: &ast.AstArena{
-			Nodes:   make([]ast.Node, 1024),
-			Strings: make([]string, 512),
+			Nodes: make([]ast.Node, 1024),
+			Value: make([]ast.Value, 512),
 		},
 	}
 	p.lex = lexer.New(input, fileName, p.da)
@@ -78,13 +78,13 @@ func (p *Parser) advance() *Parser {
 	}
 }
 
-func (p *Parser) addString(s string) int {
-	p.Ast.Strings[p.si] = s
+func (p *Parser) AddString(v ast.Value) int {
+	p.Ast.Value[p.si] = v
 	p.si++
 	return p.si - 1
 }
 
-func (p *Parser) addNode(n ast.Node) int {
+func (p *Parser) AddNode(n ast.Node) int {
 	p.Ast.Nodes[p.pn] = n
 	p.pn++
 	return p.pn - 1

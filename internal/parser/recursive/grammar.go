@@ -1,6 +1,8 @@
 package recursive
 
 import (
+	"strconv"
+
 	"github.com/fugalang/fugu/internal/ast"
 	"github.com/fugalang/fugu/internal/token"
 )
@@ -10,28 +12,46 @@ func (p *Parser) expr() int {
 
 	for p.match(token.ADD, token.SUB) {
 		op := p.pastTk
-
 		right := p.term()
 
-		return p.addNode(ast.Node{
+		left = p.AddNode(ast.Node{
 			Type:  ast.Binary,
 			Data1: left,
 			Data2: right,
 			Data3: int(ast.Op(op.Kind)),
 		})
 	}
+
 	return left
 }
 
 func (p *Parser) term() int {
-	left := p.factor()
+	left := p.power()
 
 	for p.match(token.MUL, token.DIV, token.MOD) {
 		op := p.pastTk
 
-		right := p.factor()
+		right := p.power()
 
-		return p.addNode(ast.Node{
+		left = p.AddNode(ast.Node{
+			Type:  ast.Binary,
+			Data1: left,
+			Data2: right,
+			Data3: int(ast.Op(op.Kind)),
+		})
+	}
+
+	return left
+}
+
+func (p *Parser) power() int {
+	left := p.factor()
+
+	if p.match(token.POW) {
+		op := p.pastTk
+		right := p.power()
+
+		return p.AddNode(ast.Node{
 			Type:  ast.Binary,
 			Data1: left,
 			Data2: right,
@@ -47,7 +67,7 @@ func (p *Parser) factor() int {
 		op := p.pastTk
 		expr := p.factor()
 
-		return p.addNode(ast.Node{
+		return p.AddNode(ast.Node{
 			Type:  ast.Unary,
 			Data1: expr,
 			Data3: int(ast.Op(op.Kind)),
@@ -55,11 +75,37 @@ func (p *Parser) factor() int {
 	}
 
 	if p.match(token.G_NUMBER) {
+		switch p.pastTk.Kind {
+		case token.INTEGER:
+			v, _ := strconv.ParseInt(p.VauleToken(), 10, 64)
+			return p.AddNode(ast.Node{
+				Type: ast.Literal,
+				Data1: p.AddString(ast.Value{
+					Type: ast.Int,
+					I64:  v,
+				}),
+			})
 
-		return p.addNode(ast.Node{
-			Type:  ast.Literal,
-			Data1: p.addString(p.VauleToken()),
-		})
+		case token.IMAGINARY:
+			v, _ := strconv.ParseComplex(p.VauleToken(), 128)
+			return p.AddNode(ast.Node{
+				Type: ast.Literal,
+				Data1: p.AddString(ast.Value{
+					Type: ast.Complex,
+					C128: v,
+				}),
+			})
+
+		case token.FLOATING:
+			v, _ := strconv.ParseFloat(p.VauleToken(), 64)
+			return p.AddNode(ast.Node{
+				Type: ast.Literal,
+				Data1: p.AddString(ast.Value{
+					Type: ast.Float,
+					F64:  v,
+				}),
+			})
+		}
 	}
 
 	if p.match(token.L_PAREN) {
@@ -75,15 +121,18 @@ func (p *Parser) parsModule() {
 	if p.eat(token.MODULE) {
 		if p.eat(token.IDENTIFIER) {
 			nameModule := p.VauleToken()
-			i := p.addString(nameModule)
+			i := p.AddString(ast.Value{
+				Type: ast.String,
+				STR:  nameModule,
+			})
 			if nameModule == "main" {
-				p.addNode(ast.Node{
+				p.AddNode(ast.Node{
 					Type:  ast.Module,
 					Data1: 1,
 					Data2: i,
 				})
 			} else {
-				p.addNode(ast.Node{
+				p.AddNode(ast.Node{
 					Type:  ast.Module,
 					Data1: 2,
 					Data2: i,
