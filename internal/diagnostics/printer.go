@@ -54,7 +54,11 @@ func (a *DiagnosticArena) Print() {
 			sb.WriteString(color.BoldBlue(":"))
 			sb.WriteString(color.BoldBlue(fmt.Sprint(err.Pos.Column)))
 		}
-		sb.WriteString("\n\n")
+		if err.Pos.Line != 0 {
+			sb.WriteString("\n\n")
+		} else {
+			sb.WriteString("\n")
+		}
 
 		if err.Arrow != "BLOCK=FALSE" {
 			lines := GetLine(a.Source, int(err.Pos.Line), int(err.Pos.Line)-5)
