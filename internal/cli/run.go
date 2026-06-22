@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	aAst "github.com/fugalang/fugu/internal/analyzer/ast"
+	"github.com/fugalang/fugu/internal/parser/recursive"
+
 	"github.com/fugalang/fugu/internal/composer/project"
 	"github.com/fugalang/fugu/pkg/color"
 	"github.com/fugalang/fugu/pkg/reader"
@@ -26,7 +29,9 @@ func Run(p *project.Project) (*project.Project, error) {
 		if err != nil {
 			return p, err
 		}
-		_ = content
+		pars := recursive.New(content, "")
+		aAst.Analysis(pars.Parse(), pars)
+
 		return p, nil
 	}
 }

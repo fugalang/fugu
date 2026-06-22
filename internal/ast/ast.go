@@ -1,13 +1,16 @@
 package ast
 
-import "github.com/fugalang/fugu/internal/token"
+import (
+	"github.com/fugalang/fugu/internal/token"
+)
 
 type NodeType uint16
 type Operator uint8
+type ValueKind uint8
 
 type AstArena struct {
-	Nodes   []Node
-	Strings []string
+	Nodes []Node
+	Value []Value
 }
 
 type Node struct {
@@ -17,6 +20,15 @@ type Node struct {
 	Data2 int
 	Data3 int
 	Data4 float64
+}
+
+type Value struct {
+	Type ValueKind
+
+	STR  string
+	I64  int64
+	F64  float64
+	C128 complex128
 }
 
 const (
@@ -33,28 +45,36 @@ const (
 
 const (
 	OpInvalid Operator = iota
-	OpPlus
-	OpMinus
-	OpMultiply
-	OpDivide
-	OpModulo
-	OpPower
+	OpAdd
+	OpSub
+	OpMul
+	OpDiv
+	OpMod
+	OpPow
+)
+
+const (
+	_ ValueKind = iota
+	String
+	Int
+	Float
+	Complex
 )
 
 func Op(kind token.Kind) Operator {
 	switch kind {
 	case token.ADD:
-		return OpPlus
+		return OpAdd
 	case token.SUB:
-		return OpMinus
+		return OpSub
 	case token.MUL:
-		return OpMultiply
+		return OpMul
 	case token.DIV:
-		return OpDivide
+		return OpDiv
 	case token.MOD:
-		return OpDivide
+		return OpMod
 	case token.POW:
-		return OpPower
+		return OpPow
 	default:
 		return OpInvalid
 	}
