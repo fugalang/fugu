@@ -16,7 +16,7 @@ type Parser struct {
 
 	Tokens []token.Token
 	curTk  token.Token
-	peekTk token.Token
+	pastTk token.Token
 	pos    int
 
 	pn int
@@ -40,7 +40,7 @@ func New(input []byte, fileName string) *Parser {
 		},
 	}
 	p.lex = lexer.New(input, fileName, p.da)
-	p.advance().advance()
+	p.advance()
 	p.pos = 0
 	return p
 }
@@ -65,38 +65,51 @@ func (p *Parser) advance() *Parser {
 			continue
 		}
 
-		if tk.Kind == token.EOF && p.peekTk.Kind == token.EOF {
-			p.curTk = p.peekTk
+		if tk.Kind == token.EOF && p.curTk.Kind == token.EOF {
+			p.pastTk = p.curTk
 			return p
 		}
 
-		p.curTk = p.peekTk
-		p.peekTk = tk
+		p.pastTk = p.curTk
+		p.curTk = tk
 		p.Tokens[p.pos] = tk
 		p.pos++
 		return p
 	}
 }
 
-func (p *Parser) addString(s string) {
+func (p *Parser) addString(s string) int {
 	p.Ast.Strings[p.si] = s
 	p.si++
+	return p.si - 1
 }
 
-func (p *Parser) addNode(n ast.Node) {
+func (p *Parser) addNode(n ast.Node) int {
 	p.Ast.Nodes[p.pn] = n
+	p.pn++
+	return p.pn - 1
 }
 
-func (p *Parser) match(kind token.Kind) bool {
-	if p.curTk.Kind == kind {
-		p.advance()
-		return true
+func (p *Parser) match(kinds ...token.Kind) bool {
+	for _, kind := range kinds {
+		if p.curTk.Kind == kind {
+			p.advance()
+			return true
+		}
 	}
 	return false
 }
 
-func (p *Parser) matchPeek(kind token.Kind) bool {
-	return p.peekTk.Kind == kind
+func (p *Parser) expect(kind token.Kind) bool {
+	if p.curTk.Kind == kind {
+		p.advance()
+		return true
+	} else {
+		p.da.AddError(errors.Errors[5].IU("PARSER", []string{
+			fmt.Sprintf("ожидалось: %s было получино: %s", kind.String(), p.curTk.Kind.String()),
+		}))
+		return false
+	}
 }
 
 func (p *Parser) eat(kind token.Kind) bool {
@@ -108,4 +121,8 @@ func (p *Parser) eat(kind token.Kind) bool {
 	}
 	p.advance()
 	return true
+}
+
+func (p *Parser) VauleToken() string {
+	return string(p.Tokens[p.pos].Literal(&p.input))
 }

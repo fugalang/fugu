@@ -11,10 +11,10 @@ const (
 	EOF
 
 	// Группы
-	GNUMBER
-	GSTRING
-	GLITERAL
-	GARITHMETIC
+	G_NUMBER
+	G_STRING
+	G_LITERAL
+	G_ARITHMETIC
 
 	INTEGER    // 123
 	IMAGINARY  // 123i
@@ -94,35 +94,35 @@ const (
 
 	// операторы присваевания
 
-	APPROPRIATE  // :=
-	REDEFINITION // =
-	A_DECREASE   // -=
-	A_INCREASE   // +=
-	A_MULTIPLY   // *=
-	A_DIVIDE     // /=
-	A_REMAINDER  // %=
-	A_DEGREE     // ^=
+	DEFINE     // :=
+	ASSIGN     // =
+	SUB_ASSIGN // -=
+	ADD_ASSIGN // +=
+	MUL_ASSIGN // *=
+	DIV_ASSIGN // /=
+	MOD_ASSIGN // %=
+	POW_ASSIGN // ^=
 
 	// логические операторы сравнения
 
-	LIKEN         // ==
-	NOT_EQUAL     // !=
-	LESS_EQUAL    // <=
-	GREATER_EQUAL // >=
-	LESS          // <
-	GREATER       // >
-	NOT           // !
-	AND           // &&
-	OR            // ||
+	EQ   // ==
+	NEQ  // !=
+	LE   // <=
+	GE   // >=
+	LT   // <
+	GT   // >
+	BANG // !
+	AND  // &&
+	OR   // ||
 
 	// операторы арифметики
 
-	DECREASE  // -
-	INCREASE  // +
-	MULTIPLY  // *
-	DIVIDE    // /
-	REMAINDER // %
-	DEGREE    // ^
+	SUB // -
+	ADD // +
+	MUL // *
+	DIV // /
+	MOD // %
+	POW // ^
 
 	// операторы битовых сдвигов и побитовых операций
 
@@ -139,12 +139,12 @@ const (
 
 	// операторы управления данных
 
-	GOES_OVER //  =>
-	OP_RETURN // ->
-	PIPE      // |>
-	DEFAULT   // ?:
-	SAFE_DOT  // ?.
-	TAKE_LINK // &
+	ARROW        //  =>
+	RTN_ARROW    // ->
+	PIPE         // |>
+	DEFAULT      // ?:
+	OPTIONAL_DOT // ?.
+	REF          // &
 
 	// операторы разделения
 
@@ -159,13 +159,13 @@ const (
 func (tk *Kind) Group() Kind {
 	switch *tk {
 	case INTEGER, IMAGINARY, FLOATING:
-		return GNUMBER
+		return G_NUMBER
 	case STRING, T_STRING, RAW_STRING, CHARACTER:
-		return GSTRING
-	case DECREASE, INCREASE, MULTIPLY, DIVIDE, REMAINDER, DEGREE:
-		return GARITHMETIC
-	case GARITHMETIC, GSTRING, IDENTIFIER:
-		return GLITERAL
+		return G_STRING
+	case SUB, ADD, MUL, DIV, MOD, POW:
+		return G_ARITHMETIC
+	case G_ARITHMETIC, G_STRING, IDENTIFIER:
+		return G_LITERAL
 	default:
 		return *tk
 	}
@@ -173,10 +173,10 @@ func (tk *Kind) Group() Kind {
 
 func Expand(tk Kind) []Kind {
 	switch tk {
-	case GLITERAL:
+	case G_LITERAL:
 		return []Kind{
-			GNUMBER,
-			GSTRING,
+			G_NUMBER,
+			G_STRING,
 			INTEGER,
 			IMAGINARY,
 			FLOATING,
@@ -186,27 +186,27 @@ func Expand(tk Kind) []Kind {
 			CHARACTER,
 			IDENTIFIER,
 		}
-	case GNUMBER:
+	case G_NUMBER:
 		return []Kind{
 			INTEGER,
 			IMAGINARY,
 			FLOATING,
 		}
-	case GSTRING:
+	case G_STRING:
 		return []Kind{
 			STRING,
 			T_STRING,
 			RAW_STRING,
 			CHARACTER,
 		}
-	case GARITHMETIC:
+	case G_ARITHMETIC:
 		return []Kind{
-			DECREASE,
-			INCREASE,
-			MULTIPLY,
-			DIVIDE,
-			REMAINDER,
-			DEGREE,
+			SUB,
+			ADD,
+			MUL,
+			DIV,
+			MOD,
+			POW,
 		}
 	default:
 		return nil
@@ -411,72 +411,72 @@ func (tk Kind) String() string {
 		return "EXTERN"
 	case UNSAFE:
 		return "UNSAFE"
-	case APPROPRIATE:
-		return "APPROPRIATE"
-	case REDEFINITION:
-		return "REDEFINITION"
-	case A_DECREASE:
-		return "A_DECREASE"
-	case A_INCREASE:
-		return "A_INCREASE"
-	case A_MULTIPLY:
-		return "A_MULTIPLY"
-	case A_DIVIDE:
-		return "A_DIVIDE"
-	case A_REMAINDER:
-		return "A_REMAINDER"
-	case LIKEN:
-		return "LIKEN"
-	case NOT_EQUAL:
-		return "NOT_EQUAL"
-	case LESS_EQUAL:
-		return "LESS_EQUAL"
-	case GREATER_EQUAL:
-		return "GREATER_EQUAL"
-	case LESS:
-		return "LESS"
-	case GREATER:
-		return "GREATER"
-	case NOT:
-		return "NOT"
+	case DEFINE:
+		return "DEFINE"
+	case ASSIGN:
+		return "ASSIGN"
+	case SUB_ASSIGN:
+		return "SUB_ASSIGN"
+	case ADD_ASSIGN:
+		return "ADD_ASSIGN"
+	case MUL_ASSIGN:
+		return "MUL_ASSIGN"
+	case DIV_ASSIGN:
+		return "DIV_ASSIGN"
+	case MOD_ASSIGN:
+		return "MOD_ASSIGN"
+	case EQ:
+		return "EQ"
+	case NEQ:
+		return "NEQ"
+	case LE:
+		return "LE"
+	case GE:
+		return "GE"
+	case LT:
+		return "LT"
+	case GT:
+		return "GT"
+	case BANG:
+		return "BANG"
 	case AND:
 		return "AND"
 	case OR:
 		return "OR"
-	case DECREASE:
-		return "DECREASE"
-	case INCREASE:
-		return "INCREASE"
-	case MULTIPLY:
-		return "MULTIPLY"
-	case DIVIDE:
-		return "DIVIDE"
-	case REMAINDER:
-		return "REMAINDER"
-	case DEGREE:
-		return "DEGREE"
+	case SUB:
+		return "SUB"
+	case ADD:
+		return "ADD"
+	case MUL:
+		return "MUL"
+	case DIV:
+		return "DIV"
+	case MOD:
+		return "MOD"
+	case POW:
+		return "POW"
 	case SHR_LESS:
 		return "SHR_LESS"
 	case SHR_GREATER:
 		return "SHR_GREATER"
 	case BITWISE_NOT:
 		return "BITWISE_NOT"
-	case TAKE_LINK:
-		return "TAKE_LINK"
+	case REF:
+		return "REF"
 	case OP_RANGE:
 		return "OP_RANGE"
 	case RANGE_HALF_OPEN:
 		return "RANGE_HALF_OPEN"
 	case RANGE_INCL:
 		return "RANGE_INCL"
-	case GOES_OVER:
-		return "GOES_OVER"
+	case ARROW:
+		return "ARROW"
 	case PIPE:
 		return "PIPE"
 	case DEFAULT:
 		return "DEFAULT"
-	case SAFE_DOT:
-		return "SAFE_DOT"
+	case OPTIONAL_DOT:
+		return "OPTIONAL_DOT"
 	case L_PAREN:
 		return "L_PAREN"
 	case R_PAREN:

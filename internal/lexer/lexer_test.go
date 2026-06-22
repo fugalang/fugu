@@ -83,33 +83,33 @@ func TestOperator(t *testing.T) {
 		{name: "Полуоткрытый диапазон", input: []byte("..<"), expectedKind: token.RANGE_HALF_OPEN},
 
 		// Операторы присваивания
-		{name: "Присваивание с объявлением", input: []byte(":="), expectedKind: token.APPROPRIATE},
-		{name: "Обычное переопределение", input: []byte("="), expectedKind: token.REDEFINITION},
-		{name: "Уменьшение с присваиванием", input: []byte("-="), expectedKind: token.A_DECREASE},
-		{name: "Увеличение с присваиванием", input: []byte("+="), expectedKind: token.A_INCREASE},
-		{name: "Умножение с присваиванием", input: []byte("*="), expectedKind: token.A_MULTIPLY},
-		{name: "Деление с присваиванием", input: []byte("/="), expectedKind: token.A_DIVIDE},
-		{name: "Остаток с присваиванием", input: []byte("%="), expectedKind: token.A_REMAINDER},
-		{name: "Возведение в степень с присваиванием", input: []byte("^="), expectedKind: token.A_DEGREE},
+		{name: "Присваивание с объявлением", input: []byte(":="), expectedKind: token.DEFINE},
+		{name: "Обычное переопределение", input: []byte("="), expectedKind: token.ASSIGN},
+		{name: "Уменьшение с присваиванием", input: []byte("-="), expectedKind: token.SUB_ASSIGN},
+		{name: "Увеличение с присваиванием", input: []byte("+="), expectedKind: token.ADD_ASSIGN},
+		{name: "Умножение с присваиванием", input: []byte("*="), expectedKind: token.MUL_ASSIGN},
+		{name: "Деление с присваиванием", input: []byte("/="), expectedKind: token.DIV_ASSIGN},
+		{name: "Остаток с присваиванием", input: []byte("%="), expectedKind: token.MOD_ASSIGN},
+		{name: "Возведение в степень с присваиванием", input: []byte("^="), expectedKind: token.POW_ASSIGN},
 
 		// Логические операторы сравнения
-		{name: "Равенство", input: []byte("=="), expectedKind: token.LIKEN},
-		{name: "Неравенство", input: []byte("!="), expectedKind: token.NOT_EQUAL},
-		{name: "Меньше или равно", input: []byte("<="), expectedKind: token.LESS_EQUAL},
-		{name: "Больше или равно", input: []byte(">="), expectedKind: token.GREATER_EQUAL},
-		{name: "Меньше", input: []byte("<"), expectedKind: token.LESS},
-		{name: "Больше", input: []byte(">"), expectedKind: token.GREATER},
-		{name: "Логическое НЕ", input: []byte("!"), expectedKind: token.NOT},
+		{name: "Равенство", input: []byte("=="), expectedKind: token.EQ},
+		{name: "Неравенство", input: []byte("!="), expectedKind: token.NEQ},
+		{name: "Меньше или равно", input: []byte("<="), expectedKind: token.LE},
+		{name: "Больше или равно", input: []byte(">="), expectedKind: token.GE},
+		{name: "Меньше", input: []byte("<"), expectedKind: token.LT},
+		{name: "Больше", input: []byte(">"), expectedKind: token.GT},
+		{name: "Логическое НЕ", input: []byte("!"), expectedKind: token.BANG},
 		{name: "Логическое И", input: []byte("&&"), expectedKind: token.AND},
 		{name: "Логическое ИЛИ", input: []byte("||"), expectedKind: token.OR},
 
 		// Операторы арифметики
-		{name: "Минус", input: []byte("-"), expectedKind: token.DECREASE},
-		{name: "Плюс", input: []byte("+"), expectedKind: token.INCREASE},
-		{name: "Умножение", input: []byte("*"), expectedKind: token.MULTIPLY},
-		{name: "Деление", input: []byte("/"), expectedKind: token.DIVIDE},
-		{name: "Остаток от деления", input: []byte("%"), expectedKind: token.REMAINDER},
-		{name: "Степень", input: []byte("^"), expectedKind: token.DEGREE},
+		{name: "Минус", input: []byte("-"), expectedKind: token.SUB},
+		{name: "Плюс", input: []byte("+"), expectedKind: token.ADD},
+		{name: "Умножение", input: []byte("*"), expectedKind: token.MUL},
+		{name: "Деление", input: []byte("/"), expectedKind: token.DIV},
+		{name: "Остаток от деления", input: []byte("%"), expectedKind: token.MOD},
+		{name: "Степень", input: []byte("^"), expectedKind: token.POW},
 
 		// Побитовые операторы
 		{name: "Битовый сдвиг влево", input: []byte("<<"), expectedKind: token.SHR_LESS},
@@ -117,11 +117,11 @@ func TestOperator(t *testing.T) {
 		{name: "Побитовое НЕ", input: []byte("~"), expectedKind: token.BITWISE_NOT},
 
 		// Операторы управления данными
-		{name: "Лямбда", input: []byte("=>"), expectedKind: token.GOES_OVER},
+		{name: "Лямбда", input: []byte("=>"), expectedKind: token.ARROW},
 		{name: "Пайплайн", input: []byte("|>"), expectedKind: token.PIPE},
 		{name: "Тернарный оператор", input: []byte("?:"), expectedKind: token.DEFAULT},
-		{name: "Безопасный вызов", input: []byte("?."), expectedKind: token.SAFE_DOT},
-		{name: "Взятие ссылки", input: []byte("&"), expectedKind: token.TAKE_LINK},
+		{name: "Безопасный вызов", input: []byte("?."), expectedKind: token.OPTIONAL_DOT},
+		{name: "Взятие ссылки", input: []byte("&"), expectedKind: token.REF},
 
 		// Операторы группировки
 		{name: "Левая круглая скобка: ( ", input: []byte("("), expectedKind: token.L_PAREN},
