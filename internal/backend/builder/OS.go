@@ -21,6 +21,7 @@ const (
 	Netbsd
 
 	KernelMod
+	RuntimeKernelModUnixLite
 )
 
 func CurrentOs() TypeOs {
@@ -63,6 +64,8 @@ func GetTargetOsEnv() TypeOs {
 		return Netbsd
 	case "KERNEL-MOD", "NO-STD", "LOW-MOD":
 		return KernelMod
+	case "RKMUL":
+		return RuntimeKernelModUnixLite
 	default:
 		return CurrentOs()
 	}
