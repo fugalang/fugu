@@ -30,7 +30,7 @@ func InitProject(name string) *Project {
 		}
 
 		return &Project{
-			Name:      cgf.NameProject,
+			Config:    *cgf,
 			Path:      path,
 			Libraries: LoadLibraries(),
 		}
@@ -46,7 +46,10 @@ func InitProject(name string) *Project {
 	}
 
 	return &Project{
-		Name:      name,
+		Config: Config{
+			NameProject: name,
+			IsCache:     true,
+		},
 		Path:      path,
 		Libraries: []library.Library{},
 	}
@@ -55,6 +58,7 @@ func InitProject(name string) *Project {
 func CgfFileContentGen(nameProject string) ([]byte, error) {
 	cfg := Config{
 		NameProject: nameProject,
+		IsCache:     true,
 	}
 
 	b, err := json.MarshalIndent(cfg, "", "  ")

@@ -8,6 +8,6 @@ import (
 )
 
 func TestCacherLoadingLibrary(t *testing.T) {
-	prj := project.InitProject("")
+	prj := project.InitProject("app")
 	pp.Println(prj)
 }

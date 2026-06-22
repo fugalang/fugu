@@ -10,6 +10,7 @@ const (
 	Int32
 	int64
 
+	Uint // Uint64
 	Uint8
 	Uint16
 	Uint32
