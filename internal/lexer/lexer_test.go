@@ -48,7 +48,7 @@ func TestComment(t *testing.T) {
 			continue // переход к след тесту
 		}
 
-		lit := tk.Literal(&lex.input)
+		lit := tk.Literal(&lex.Input)
 		if string(lit) != string(tt.expectedLiteral) {
 			t.Errorf("[%s] Неверный литерал.\nОжидался:\n%q\n\nПолучен:\n%q",
 				tt.name, tt.expectedLiteral, lit)
@@ -189,9 +189,9 @@ func TestLiteral(t *testing.T) {
 			continue
 		}
 
-		if string(tk.Literal(&lex.input)) != string(tt.expectedLiteral) {
+		if string(tk.Literal(&lex.Input)) != string(tt.expectedLiteral) {
 			t.Errorf("[%s] Неверный литерал. Ожидался: %q, получен: %q",
-				tt.name, tt.expectedLiteral, tk.Literal(&lex.input))
+				tt.name, tt.expectedLiteral, tk.Literal(&lex.Input))
 			continue
 		}
 	}

@@ -42,6 +42,8 @@ const (
 	// контрольные конструкции
 	RETURN
 	MATCH
+	SWITCH
+	CASE
 	IF
 	ELSE
 	FOR
@@ -243,6 +245,8 @@ var keywords = map[string]Kind{
 	"match":    MATCH,
 	"if":       IF,
 	"else":     ELSE,
+	"switch":   SWITCH,
+	"case":     CASE,
 	"for":      FOR,
 	"range":    RANGE,
 	"continue": CONTINUE,
@@ -317,6 +321,10 @@ func (tk Kind) String() string {
 		return "IF"
 	case ELSE:
 		return "ELSE"
+	case SWITCH:
+		return "SWITCH"
+	case CASE:
+		return "CASE"
 	case FOR:
 		return "FOR"
 	case RANGE:

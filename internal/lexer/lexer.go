@@ -6,18 +6,18 @@ import (
 
 	"github.com/fugalang/fugu/internal/diagnostics"
 	"github.com/fugalang/fugu/internal/diagnostics/errors"
-	"github.com/fugalang/fugu/internal/token"
+	. "github.com/fugalang/fugu/internal/token"
 )
 
 type Lexer struct {
-	input []byte
+	Input []byte
 	rn    rune // текущая rune
 
 	curPos         uint64 // абсолютное смещение c начала файла
 	tokStart       uint64 // абсолютное смещение до начала токена который разбираеться прямо сейчас
 	tokStartLine   uint64 // номер строки начала токена
 	tokStartColumn uint64 // номер колонки начала токена
-	pos            token.Position
+	pos            Position
 
 	savePoint saveLexer
 	da        *diagnostics.Arena
@@ -30,7 +30,7 @@ type saveLexer struct {
 	tokStart       uint64
 	tokStartLine   uint64
 	tokStartColumn uint64
-	pos            token.Position
+	pos            Position
 }
 
 func New(input []byte, fileName string, da *diagnostics.Arena) *Lexer {
@@ -38,9 +38,9 @@ func New(input []byte, fileName string, da *diagnostics.Arena) *Lexer {
 		input = make([]byte, 0)
 	}
 	lex := &Lexer{
-		input:  input,
+		Input:  input,
 		curPos: 0,
-		pos: token.Position{
+		pos: Position{
 			FileName: fileName,
 			Line:     1,
 			Column:   0,
@@ -55,23 +55,23 @@ func New(input []byte, fileName string, da *diagnostics.Arena) *Lexer {
 }
 
 func (lex *Lexer) Reset() {
-	lex = New(lex.input, lex.pos.FileName, lex.da)
+	lex = New(lex.Input, lex.pos.FileName, lex.da)
 }
 
-func (lex *Lexer) NextToken() token.Token {
+func (lex *Lexer) NextToken() Token {
 	lex.tokStart = lex.pos.Offset
 	lex.tokStartLine = lex.pos.Line
 	lex.tokStartColumn = lex.pos.Column
 
 	if lex.rn == 0 {
-		return lex.NewToken(token.EOF)
+		return lex.NewToken(EOF)
 	}
 
 	if unicode.IsSpace(lex.rn) {
 		for unicode.IsSpace(lex.rn) {
 			lex.advance()
 		}
-		return lex.NewToken(token.SPACING)
+		return lex.NewToken(SPACING)
 	}
 
 	switch lex.rn {
@@ -82,184 +82,184 @@ func (lex *Lexer) NextToken() token.Token {
 			return lex.readMultiLineComment()
 		} else if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.DIV_ASSIGN)
+			return lex.NewToken(DIV_ASSIGN)
 		}
 
 		lex.advance()
-		return lex.NewToken(token.DIV)
+		return lex.NewToken(DIV)
 
 	case '.':
 		if lex.peekRn() == '.' {
 			lex.advance() // едим первую .
 			if lex.peekRn() == '=' {
 				lex.advance().advance()
-				return lex.NewToken(token.RANGE_INCL)
+				return lex.NewToken(RANGE_INCL)
 			} else if lex.peekRn() == '<' {
 				lex.advance().advance()
-				return lex.NewToken(token.RANGE_HALF_OPEN)
+				return lex.NewToken(RANGE_HALF_OPEN)
 			} else if lex.peekRn() == '.' {
 				lex.advance().advance()
-				return lex.NewToken(token.OP_ARRAY)
+				return lex.NewToken(OP_ARRAY)
 			}
 			lex.advance()
-			return lex.NewToken(token.OP_RANGE)
+			return lex.NewToken(OP_RANGE)
 		}
 		lex.advance()
-		return lex.NewToken(token.DOT)
+		return lex.NewToken(DOT)
 
 	case '<':
 		if lex.peekRn() == '<' {
 			lex.advance().advance()
-			return lex.NewToken(token.SHR_LESS)
+			return lex.NewToken(SHR_LESS)
 		} else if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.LE)
+			return lex.NewToken(LE)
 		} else if lex.peekRn() == '-' {
-			return lex.NewToken(token.CHAN_SEND)
+			return lex.NewToken(CHAN_SEND)
 		}
 		lex.advance()
-		return lex.NewToken(token.LT)
+		return lex.NewToken(LT)
 
 	case '>':
 		if lex.peekRn() == '>' {
 			lex.advance().advance()
-			return lex.NewToken(token.SHR_GREATER)
+			return lex.NewToken(SHR_GREATER)
 		} else if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.GE)
+			return lex.NewToken(GE)
 		}
 		lex.advance()
-		return lex.NewToken(token.GT)
+		return lex.NewToken(GT)
 
 	case '-':
 		if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.SUB_ASSIGN)
+			return lex.NewToken(SUB_ASSIGN)
 		} else if lex.peekRn() == '>' {
 			lex.advance().advance()
-			return lex.NewToken(token.RTN_ARROW)
+			return lex.NewToken(RTN_ARROW)
 		}
 
 		lex.advance()
-		return lex.NewToken(token.SUB)
+		return lex.NewToken(SUB)
 
 	case '+':
 		if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.ADD_ASSIGN)
+			return lex.NewToken(ADD_ASSIGN)
 		}
 		lex.advance()
-		return lex.NewToken(token.ADD)
+		return lex.NewToken(ADD)
 
 	case '*':
 		if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.MUL_ASSIGN)
+			return lex.NewToken(MUL_ASSIGN)
 		}
 		lex.advance()
-		return lex.NewToken(token.MUL)
+		return lex.NewToken(MUL)
 
 	case '%':
 		if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.MOD_ASSIGN)
+			return lex.NewToken(MOD_ASSIGN)
 		}
 		lex.advance()
-		return lex.NewToken(token.MOD)
+		return lex.NewToken(MOD)
 
 	case '^':
 		if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.POW_ASSIGN)
+			return lex.NewToken(POW_ASSIGN)
 		}
 		lex.advance()
-		return lex.NewToken(token.POW)
+		return lex.NewToken(POW)
 
 	case '~':
 		lex.advance()
-		return lex.NewToken(token.BITWISE_NOT)
+		return lex.NewToken(BITWISE_NOT)
 
 	case '&':
 		if lex.peekRn() == '&' {
 			lex.advance().advance()
-			return lex.NewToken(token.AND)
+			return lex.NewToken(AND)
 		}
 		lex.advance()
-		return lex.NewToken(token.REF)
+		return lex.NewToken(REF)
 
 	case '!':
 		if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.NEQ)
+			return lex.NewToken(NEQ)
 		}
 		lex.advance()
-		return lex.NewToken(token.BANG)
+		return lex.NewToken(BANG)
 
 	case '?':
 		if lex.peekRn() == ':' {
 			lex.advance().advance()
-			return lex.NewToken(token.DEFAULT)
+			return lex.NewToken(DEFAULT)
 		} else if lex.peekRn() == '.' {
 			lex.advance().advance()
-			return lex.NewToken(token.OPTIONAL_DOT)
+			return lex.NewToken(OPTIONAL_DOT)
 		}
 
 	case '=':
 		if lex.peekRn() == '=' {
 			lex.advance().advance()
-			return lex.NewToken(token.EQ)
+			return lex.NewToken(EQ)
 		} else if lex.peekRn() == '>' {
 			lex.advance().advance()
-			return lex.NewToken(token.ARROW)
+			return lex.NewToken(ARROW)
 		}
 
 		lex.advance()
-		return lex.NewToken(token.ASSIGN)
+		return lex.NewToken(ASSIGN)
 
 	case '|':
 		if lex.peekRn() == '|' {
 			lex.advance().advance()
-			return lex.NewToken(token.OR)
+			return lex.NewToken(OR)
 		} else if lex.peekRn() == '>' {
 			lex.advance().advance()
-			return lex.NewToken(token.PIPE)
+			return lex.NewToken(PIPE)
 		}
 
 	case ':':
 		lex.advance()
-		return lex.NewToken(token.COLON)
+		return lex.NewToken(COLON)
 
 	case '(':
 		lex.advance()
-		return lex.NewToken(token.L_PAREN)
+		return lex.NewToken(L_PAREN)
 
 	case ')':
 		lex.advance()
-		return lex.NewToken(token.R_PAREN)
+		return lex.NewToken(R_PAREN)
 
 	case '{':
 		lex.advance()
-		return lex.NewToken(token.L_BRACE)
+		return lex.NewToken(L_BRACE)
 
 	case '}':
 		lex.advance()
-		return lex.NewToken(token.R_BRACE)
+		return lex.NewToken(R_BRACE)
 
 	case '[':
 		lex.advance()
-		return lex.NewToken(token.L_BRACK)
+		return lex.NewToken(L_BRACK)
 
 	case ']':
 		lex.advance()
-		return lex.NewToken(token.R_BRACK)
+		return lex.NewToken(R_BRACK)
 
 	case ';':
 		lex.advance()
-		return lex.NewToken(token.END)
+		return lex.NewToken(END)
 
 	case ',':
 		lex.advance()
-		return lex.NewToken(token.COMMA)
+		return lex.NewToken(COMMA)
 
 	case '"':
 		return lex.readString()
@@ -277,18 +277,18 @@ func (lex *Lexer) NextToken() token.Token {
 				lex.advance()
 			}
 
-			return lex.NewToken(token.SearchKeyword(lex.input[lex.tokStart:lex.pos.Offset]))
+			return lex.NewToken(SearchKeyword(lex.Input[lex.tokStart:lex.pos.Offset]))
 		}
 
 		lex.advance()
-		return lex.NewToken(token.ILLEGAL)
+		return lex.NewToken(ILLEGAL)
 
 	}
 
-	return lex.NewToken(token.ILLEGAL)
+	return lex.NewToken(ILLEGAL)
 }
 
-func (lex *Lexer) readLineComment() token.Token {
+func (lex *Lexer) readLineComment() Token {
 	lex.advance().advance() // '//'
 
 	// останавливаемся перед '\n'
@@ -296,17 +296,17 @@ func (lex *Lexer) readLineComment() token.Token {
 		lex.advance()
 	}
 
-	return lex.NewToken(token.COMMENT)
+	return lex.NewToken(COMMENT)
 }
 
-func (lex *Lexer) readMultiLineComment() token.Token {
+func (lex *Lexer) readMultiLineComment() Token {
 	lex.advance().advance() // '/*'
 
 	lex.freezing()
 
 	for {
 		if lex.rn == 0 {
-			tk := lex.NewToken(token.ILLEGAL)
+			tk := lex.NewToken(ILLEGAL)
 			lex.da.Add(errors.Errors[2].Update(tk))
 			lex.unfreeze()
 			lex.stabilization()
@@ -321,10 +321,10 @@ func (lex *Lexer) readMultiLineComment() token.Token {
 		lex.advance()
 	}
 
-	return lex.NewToken(token.M_COMMENT)
+	return lex.NewToken(M_COMMENT)
 }
 
-func (lex *Lexer) readString() token.Token {
+func (lex *Lexer) readString() Token {
 	lex.advance() // '"'
 	isTemplate := false
 
@@ -344,7 +344,7 @@ func (lex *Lexer) readString() token.Token {
 	}
 
 	if lex.rn == 0 {
-		tk := lex.NewToken(token.ILLEGAL)
+		tk := lex.NewToken(ILLEGAL)
 		lex.da.Add(errors.Errors[2].Update(tk))
 		lex.unfreeze()
 		lex.stabilization()
@@ -354,12 +354,12 @@ func (lex *Lexer) readString() token.Token {
 	lex.advance() // '"'
 
 	if isTemplate {
-		return lex.NewToken(token.T_STRING)
+		return lex.NewToken(T_STRING)
 	}
-	return lex.NewToken(token.STRING)
+	return lex.NewToken(STRING)
 }
 
-func (lex *Lexer) readRawString() token.Token {
+func (lex *Lexer) readRawString() Token {
 	lex.advance() // '`'
 
 	lex.freezing()
@@ -369,7 +369,7 @@ func (lex *Lexer) readRawString() token.Token {
 	}
 
 	if lex.rn == 0 {
-		tk := lex.NewToken(token.ILLEGAL)
+		tk := lex.NewToken(ILLEGAL)
 		lex.da.Add(errors.Errors[2].Update(tk))
 		lex.unfreeze()
 		lex.stabilization()
@@ -377,10 +377,10 @@ func (lex *Lexer) readRawString() token.Token {
 	}
 
 	lex.advance()
-	return lex.NewToken(token.RAW_STRING)
+	return lex.NewToken(RAW_STRING)
 }
 
-func (lex *Lexer) readChar() token.Token {
+func (lex *Lexer) readChar() Token {
 	lex.advance()
 
 	if lex.rn == '\\' {
@@ -390,14 +390,14 @@ func (lex *Lexer) readChar() token.Token {
 	}
 
 	if lex.rn != '\'' {
-		return lex.NewToken(token.ILLEGAL)
+		return lex.NewToken(ILLEGAL)
 	}
 
 	lex.advance()
-	return lex.NewToken(token.CHARACTER)
+	return lex.NewToken(CHARACTER)
 }
 
-func (lex *Lexer) readNumber() token.Token {
+func (lex *Lexer) readNumber() Token {
 	isFloat := false
 	isIdent := false
 
@@ -420,7 +420,7 @@ func (lex *Lexer) readNumber() token.Token {
 		lex.advance()
 	}
 
-	literal := lex.input[lex.tokStart:lex.pos.Offset]
+	literal := lex.Input[lex.tokStart:lex.pos.Offset]
 
 	if isIdent {
 		if literal[len(literal)-1] == 'i' && (!isFloat || len(literal) > 2) {
@@ -432,42 +432,42 @@ func (lex *Lexer) readNumber() token.Token {
 				}
 			}
 			if onlyDigits {
-				return lex.NewToken(token.IMAGINARY)
+				return lex.NewToken(IMAGINARY)
 			}
 		}
 
-		return lex.NewToken(token.IDENTIFIER)
+		return lex.NewToken(IDENTIFIER)
 	}
 
 	if isFloat {
-		return lex.NewToken(token.FLOATING)
+		return lex.NewToken(FLOATING)
 	}
-	return lex.NewToken(token.INTEGER)
+	return lex.NewToken(INTEGER)
 }
 
 func (lex *Lexer) stabilization() {
-	tkws := map[string]bool{
-		"FN":     true,
-		"IF":     true,
-		"SWITCH": true,
-		"CASE":   true,
-		"RETURN": true,
-		"ENUM":   true,
-		"SELECT": true,
+	tkws := map[Kind]bool{
+		FN:     true,
+		IF:     true,
+		SWITCH: true,
+		CASE:   true,
+		RETURN: true,
+		ENUM:   true,
+		SELECT: true,
 	}
 
 	for {
 		lex.freezing()
 		tk := lex.NextToken()
 
-		if tk.Kind == token.EOF {
+		if tk.Kind == EOF {
 			return
-		} else if tk.Kind == token.SPACING || tk.Kind == token.COMMENT || tk.Kind == token.M_COMMENT {
+		} else if tk.Kind == SPACING || tk.Kind == COMMENT || tk.Kind == M_COMMENT {
 			continue
-		} else if tkws[tk.Kind.String()] {
+		} else if tkws[tk.Kind] {
 			lex.unfreeze()
 			return
-		} else if tk.Kind == token.R_BRACE || tk.Kind == token.END {
+		} else if tk.Kind == R_BRACE || tk.Kind == END {
 			lex.unfreeze()
 			return
 		}
@@ -475,13 +475,13 @@ func (lex *Lexer) stabilization() {
 }
 
 func (lex *Lexer) advance() *Lexer {
-	if lex.curPos >= uint64(len(lex.input)) {
+	if lex.curPos >= uint64(len(lex.Input)) {
 		lex.rn = 0 // \x00
 		lex.pos.Offset = lex.curPos
 		return lex
 	}
 
-	r, size := utf8.DecodeRune(lex.input[lex.curPos:])
+	r, size := utf8.DecodeRune(lex.Input[lex.curPos:])
 
 	lex.rn = r
 	lex.pos.Offset = lex.curPos
@@ -499,19 +499,19 @@ func (lex *Lexer) advance() *Lexer {
 
 // возвращает следущий симвл после Lexer.curPos
 func (lex *Lexer) peekRn() rune {
-	if lex.curPos >= uint64(len(lex.input)) {
+	if lex.curPos >= uint64(len(lex.Input)) {
 		return 0
 	}
 
-	r, _ := utf8.DecodeRune(lex.input[lex.curPos:])
+	r, _ := utf8.DecodeRune(lex.Input[lex.curPos:])
 
 	return r
 }
 
-func (lex *Lexer) NewToken(kind token.Kind) token.Token {
-	return token.Token{
+func (lex *Lexer) NewToken(kind Kind) Token {
+	return Token{
 		Kind: kind,
-		Pos: token.Position{
+		Pos: Position{
 			FileName: lex.pos.FileName,
 			Line:     lex.tokStartLine,
 			Column:   lex.tokStartColumn,
