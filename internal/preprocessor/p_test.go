@@ -10,12 +10,12 @@ func TestDefine(t *testing.T) {
 	var b = []byte(`
 A
 
-#define A 10
+#define A = 10
 
 A
 B
 
-#define B hello
+#define B = hello
 
 B`)
 

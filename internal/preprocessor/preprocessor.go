@@ -25,14 +25,18 @@ func (a *Arena) Define(content *[]byte) {
 		line = strings.TrimSpace(line)
 
 		if strings.HasPrefix(line, "#define") {
-			parts := strings.Fields(line)
+			rest := strings.TrimSpace(strings.TrimPrefix(line, "#define"))
 
-			if len(parts) >= 3 {
-				name := parts[1]
-				value := strings.Join(parts[2:], " ")
+			parts := strings.SplitN(rest, "=", 2)
 
-				a.Defines[name] = value
+			if len(parts) != 2 {
+				continue
 			}
+
+			name := strings.TrimSpace(parts[0])
+			value := strings.TrimSpace(parts[1])
+
+			a.Defines[name] = value
 
 			continue
 		}
