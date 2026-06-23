@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/fugalang/fugu/internal/composer/cacher"
+	"github.com/fugalang/fugu/internal/diagnostics"
 	"github.com/fugalang/fugu/internal/library"
 	"github.com/fugalang/fugu/pkg/reader"
 )
@@ -17,7 +18,7 @@ const (
 	PrefixFileConfig = ".cgf"
 )
 
-func InitProject(name string) *Project {
+func InitProject(a diagnostics.Arena, name string) *Project {
 	path, err := reader.PathOfHome()
 	if err != nil {
 		return nil
@@ -29,10 +30,13 @@ func InitProject(name string) *Project {
 			return nil
 		}
 
+		// CU1
 		return &Project{
 			Config:    *cgf,
 			Path:      path,
-			Libraries: LoadLibraries(),
+			Libraries: LoadLibraries(a),
+
+			Ad: *&diagnostics.Arena{},
 		}
 	}
 
@@ -45,6 +49,7 @@ func InitProject(name string) *Project {
 		return nil
 	}
 
+	// CU1
 	return &Project{
 		Config: Config{
 			NameProject: name,
@@ -52,6 +57,8 @@ func InitProject(name string) *Project {
 		},
 		Path:      path,
 		Libraries: []library.Library{},
+
+		Ad: diagnostics.Arena{},
 	}
 }
 
@@ -69,7 +76,7 @@ func CgfFileContentGen(nameProject string) ([]byte, error) {
 	return b, nil
 }
 
-func LoadLibraries() []library.Library {
+func LoadLibraries(a diagnostics.Arena) []library.Library {
 	libs, err := reader.GetLibraries(DirLibs, PrefixLibrary)
 	if err != nil {
 		return []library.Library{}
@@ -85,7 +92,7 @@ func LoadLibraries() []library.Library {
 		path := pathHome + "/" + DirLibs
 
 		content, err := reader.ReadFile(path, libName, PrefixLibrary)
-		libraries = append(libraries, cacher.ParseLibraryCach(content, path+libName+PrefixLibrary))
+		libraries = append(libraries, cacher.ParseLibraryCach(a, content, path+libName+PrefixLibrary))
 	}
 
 	return libraries

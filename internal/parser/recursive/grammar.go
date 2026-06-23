@@ -75,7 +75,7 @@ func (p *Parser) factor() int {
 	}
 
 	if p.match(token.G_NUMBER) {
-		switch p.pastTk.Kind {
+		switch p.fkTk {
 		case token.INTEGER:
 			v, _ := strconv.ParseInt(p.VauleToken(), 10, 64)
 			return p.AddNode(ast.Node{
@@ -142,5 +142,51 @@ func (p *Parser) parsModule() {
 		} else {
 			return
 		}
+	}
+}
+
+func (p *Parser) parsLet() {
+	if p.match(token.LET) {
+		if p.match(token.IDENTIFIER) {
+			name := p.VauleToken()
+			if p.match(token.COLON) {
+				if p.match(token.MUT) {
+					if p.match(token.IDENTIFIER) {
+						if p.match(token.ASSIGN) {
+							if p.match(token.G_LITERAL) {
+								p.AddNode(ast.Node{
+									Type: ast.Let,
+
+									Data1: p.AddString(ast.Value{
+										Type: ast.String,
+										STR:  name,
+									}),
+									Data2: 1,
+									Data3: 1,
+								})
+							} else {
+
+							}
+						} else {
+
+						}
+					} else {
+
+					}
+				} else {
+					if p.match(token.CONST) {
+
+					} else {
+
+					}
+				}
+			} else {
+
+			}
+		} else {
+
+		}
+	} else {
+
 	}
 }

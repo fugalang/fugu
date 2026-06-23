@@ -37,7 +37,7 @@ func TestComment(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		lex := New(tt.input, "main.fg", &diagnostics.DiagnosticArena{
+		lex := New(tt.input, "main.fg", &diagnostics.Arena{
 			Source: string(tt.input),
 		})
 		tk := lex.NextToken()
@@ -83,7 +83,6 @@ func TestOperator(t *testing.T) {
 		{name: "Полуоткрытый диапазон", input: []byte("..<"), expectedKind: token.RANGE_HALF_OPEN},
 
 		// Операторы присваивания
-		{name: "Присваивание с объявлением", input: []byte(":="), expectedKind: token.DEFINE},
 		{name: "Обычное переопределение", input: []byte("="), expectedKind: token.ASSIGN},
 		{name: "Уменьшение с присваиванием", input: []byte("-="), expectedKind: token.SUB_ASSIGN},
 		{name: "Увеличение с присваиванием", input: []byte("+="), expectedKind: token.ADD_ASSIGN},
@@ -139,7 +138,7 @@ func TestOperator(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		lex := New(tt.input, "main.fg", &diagnostics.DiagnosticArena{
+		lex := New(tt.input, "main.fg", &diagnostics.Arena{
 			Source: string(tt.input),
 		})
 		tk := lex.NextToken()
@@ -179,7 +178,7 @@ func TestLiteral(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		lex := New(tt.input, "main.fg", &diagnostics.DiagnosticArena{
+		lex := New(tt.input, "main.fg", &diagnostics.Arena{
 			Source: string(tt.input),
 		})
 		tk := lex.NextToken()
@@ -223,7 +222,7 @@ if x == 5 {}`),
 	}
 
 	for _, tt := range tests {
-		lex := New(tt.input, "main.fg", &diagnostics.DiagnosticArena{
+		lex := New(tt.input, "main.fg", &diagnostics.Arena{
 			Source: string(tt.input),
 		})
 

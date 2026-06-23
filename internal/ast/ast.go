@@ -39,6 +39,7 @@ const (
 
 	Module
 	Use
+	Let
 
 	If
 )

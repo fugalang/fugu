@@ -20,7 +20,7 @@ type Lexer struct {
 	pos            token.Position
 
 	savePoint saveLexer
-	da        *diagnostics.DiagnosticArena
+	da        *diagnostics.Arena
 }
 
 // для заморозки состояния
@@ -33,7 +33,7 @@ type saveLexer struct {
 	pos            token.Position
 }
 
-func New(input []byte, fileName string, da *diagnostics.DiagnosticArena) *Lexer {
+func New(input []byte, fileName string, da *diagnostics.Arena) *Lexer {
 	if input == nil {
 		input = make([]byte, 0)
 	}
@@ -114,6 +114,8 @@ func (lex *Lexer) NextToken() token.Token {
 		} else if lex.peekRn() == '=' {
 			lex.advance().advance()
 			return lex.NewToken(token.LE)
+		} else if lex.peekRn() == '-' {
+			return lex.NewToken(token.CHAN_SEND)
 		}
 		lex.advance()
 		return lex.NewToken(token.LT)
@@ -224,11 +226,6 @@ func (lex *Lexer) NextToken() token.Token {
 		}
 
 	case ':':
-		if lex.peekRn() == '=' {
-			lex.advance().advance()
-			return lex.NewToken(token.DEFINE)
-		}
-
 		lex.advance()
 		return lex.NewToken(token.COLON)
 
@@ -310,8 +307,7 @@ func (lex *Lexer) readMultiLineComment() token.Token {
 	for {
 		if lex.rn == 0 {
 			tk := lex.NewToken(token.ILLEGAL)
-			lex.da.AddError(errors.Errors[2].Update(tk))
-			lex.da.Print()
+			lex.da.Add(errors.Errors[2].Update(tk))
 			lex.unfreeze()
 			lex.stabilization()
 			return tk
@@ -349,8 +345,7 @@ func (lex *Lexer) readString() token.Token {
 
 	if lex.rn == 0 {
 		tk := lex.NewToken(token.ILLEGAL)
-		lex.da.AddError(errors.Errors[2].Update(tk))
-		lex.da.Print()
+		lex.da.Add(errors.Errors[2].Update(tk))
 		lex.unfreeze()
 		lex.stabilization()
 		return tk
@@ -375,8 +370,7 @@ func (lex *Lexer) readRawString() token.Token {
 
 	if lex.rn == 0 {
 		tk := lex.NewToken(token.ILLEGAL)
-		lex.da.AddError(errors.Errors[2].Update(tk))
-		lex.da.Print()
+		lex.da.Add(errors.Errors[2].Update(tk))
 		lex.unfreeze()
 		lex.stabilization()
 		return tk
@@ -455,14 +449,11 @@ func (lex *Lexer) stabilization() {
 	tkws := map[string]bool{
 		"FN":     true,
 		"IF":     true,
-		"ELSE":   true,
 		"SWITCH": true,
 		"CASE":   true,
 		"RETURN": true,
 		"ENUM":   true,
 		"SELECT": true,
-		"SYNC":   true,
-		"UNSAFE": true,
 	}
 
 	for {

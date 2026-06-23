@@ -11,6 +11,6 @@ func Init(p *project.Project) (*project.Project, error) {
 		return Help(p)
 	}
 
-	proj := project.InitProject(os.Args[2])
+	proj := project.InitProject(p.Ad, os.Args[2])
 	return proj, nil
 }

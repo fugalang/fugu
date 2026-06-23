@@ -17,6 +17,7 @@ type Parser struct {
 	Tokens []token.Token
 	curTk  token.Token
 	pastTk token.Token
+	fkTk   token.Kind
 	pos    int
 
 	pn int
@@ -24,14 +25,14 @@ type Parser struct {
 
 	Ast *ast.AstArena
 
-	da *diagnostics.DiagnosticArena
+	da *diagnostics.Arena
 }
 
 func New(input []byte, fileName string) *Parser {
 	p := &Parser{
 		input:  input,
 		Tokens: make([]token.Token, 1024),
-		da: &diagnostics.DiagnosticArena{
+		da: &diagnostics.Arena{
 			Source: string(input),
 		},
 		Ast: &ast.AstArena{
@@ -48,8 +49,12 @@ func New(input []byte, fileName string) *Parser {
 func (p *Parser) Parse() *ast.AstArena {
 	for p.curTk.Kind != token.EOF {
 		switch p.curTk.Kind {
+		// decl
 		case token.MODULE:
 			p.parsModule()
+		// delc + stmt
+		case token.LET:
+			p.parsLet()
 		}
 	}
 	return p.Ast
@@ -72,6 +77,9 @@ func (p *Parser) advance() *Parser {
 
 		p.pastTk = p.curTk
 		p.curTk = tk
+		p.fkTk = tk.Kind
+		p.curTk.Kind = token.Group(p.curTk.Kind)
+
 		p.Tokens[p.pos] = tk
 		p.pos++
 		return p
@@ -105,7 +113,7 @@ func (p *Parser) expect(kind token.Kind) bool {
 		p.advance()
 		return true
 	} else {
-		p.da.AddError(errors.Errors[5].IU("PARSER", []string{
+		p.da.Add(errors.Errors[5].IU("PARSER", []string{
 			fmt.Sprintf("ожидалось: %s было получино: %s", kind.String(), p.curTk.Kind.String()),
 		}))
 		return false
@@ -114,7 +122,7 @@ func (p *Parser) expect(kind token.Kind) bool {
 
 func (p *Parser) eat(kind token.Kind) bool {
 	if p.curTk.Kind != kind {
-		p.da.AddError(errors.Errors[5].IU("PARSER", []string{
+		p.da.Add(errors.Errors[5].IU("PARSER", []string{
 			fmt.Sprintf("ожидалось: %s было получино: %s", kind.String(), p.curTk.Kind.String()),
 		}))
 		return false

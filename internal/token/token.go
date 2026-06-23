@@ -39,12 +39,6 @@ const (
 	STRUCT
 	INTERFACE
 
-	// значения
-	NONE
-	TRUE
-	FALSE
-	CHAN // канал
-
 	// контрольные конструкции
 	RETURN
 	MATCH
@@ -54,34 +48,12 @@ const (
 	RANGE
 	CONTINUE
 	BREAK
+	GOTO
 
 	// управление выполнением
 
 	DEFER  // Отложенный вызов функции перед выходом из области видимости
 	SELECT // Ожидание первого готового события из каналов/корутин
-
-	// корутины
-
-	ASYNC // Объявление асинхронной функции или блока
-	AWAIT // Ожидание завершения асинхронной операции
-	YIELD // Возврат промежуточного значения из генератора
-
-	// нативные потоки
-
-	SPAWN // Запуск функции в отдельном системном потоке ОС
-
-	// групповое управление
-
-	SYNC // Создание изолированной области для группы задач
-	WAIT // Ожидание завершения ВСЕХ задач в текущем контексте
-	HALT // Безопасная экстренная остановка ВСЕХ задач группы
-
-	// низкоуровневые операции
-
-	CLANG  // вставка C кода
-	EXPORT // подключение внешней функции из динамической библиотеки
-	EXTERN // объявление внешней функции без реализации (FFI)
-	UNSAFE // блок небезопасного кода, требующий явного разрешения
 
 	// операторы группировки
 
@@ -94,7 +66,6 @@ const (
 
 	// операторы присваевания
 
-	DEFINE     // :=
 	ASSIGN     // =
 	SUB_ASSIGN // -=
 	ADD_ASSIGN // +=
@@ -145,6 +116,7 @@ const (
 	DEFAULT      // ?:
 	OPTIONAL_DOT // ?.
 	REF          // &
+	CHAN_SEND    // <-
 
 	// операторы разделения
 
@@ -253,8 +225,8 @@ func (tk Token) Literal(source *[]byte) []byte {
 
 var keywords = map[string]Kind{
 	// Объявление модулей и использование
-	"module": MODULE,
-	"use":    USE,
+	"mod": MODULE,
+	"use": USE,
 
 	// Объявления структур данных и переменных
 	"fn":        FN,
@@ -266,12 +238,6 @@ var keywords = map[string]Kind{
 	"struct":    STRUCT,
 	"interface": INTERFACE,
 
-	// Встроенные значения
-	"none":  NONE,
-	"true":  TRUE,
-	"false": FALSE,
-	"chan":  CHAN,
-
 	// Контрольные конструкции
 	"return":   RETURN,
 	"match":    MATCH,
@@ -281,29 +247,11 @@ var keywords = map[string]Kind{
 	"range":    RANGE,
 	"continue": CONTINUE,
 	"break":    BREAK,
+	"goto":     GOTO,
 
 	// Управление выполнением
 	"defer":  DEFER,
 	"select": SELECT,
-
-	// Асинхронность и корутины
-	"async": ASYNC,
-	"await": AWAIT,
-	"yield": YIELD,
-
-	// Системные потоки ОС
-	"spawn": SPAWN,
-
-	// Групповое управление задачами
-	"sync": SYNC,
-	"wait": WAIT,
-	"halt": HALT,
-
-	// Низкоуровневые операции и FFI
-	"clang":  CLANG,
-	"export": EXPORT,
-	"extern": EXTERN,
-	"unsafe": UNSAFE,
 }
 
 // проверяет является ли строка ключевым словом.
@@ -361,14 +309,6 @@ func (tk Kind) String() string {
 		return "STRUCT"
 	case INTERFACE:
 		return "INTERFACE"
-	case NONE:
-		return "NONE"
-	case TRUE:
-		return "TRUE"
-	case FALSE:
-		return "FALSE"
-	case CHAN:
-		return "CHAN"
 	case RETURN:
 		return "RETURN"
 	case MATCH:
@@ -381,6 +321,8 @@ func (tk Kind) String() string {
 		return "FOR"
 	case RANGE:
 		return "RANGE"
+	case GOTO:
+		return "GOTO"
 	case CONTINUE:
 		return "CONTINUE"
 	case BREAK:
@@ -389,30 +331,6 @@ func (tk Kind) String() string {
 		return "DEFER"
 	case SELECT:
 		return "SELECT"
-	case ASYNC:
-		return "ASYNC"
-	case AWAIT:
-		return "AWAIT"
-	case YIELD:
-		return "YIELD"
-	case SPAWN:
-		return "SPAWN"
-	case SYNC:
-		return "SYNC"
-	case WAIT:
-		return "WAIT"
-	case HALT:
-		return "HALT"
-	case CLANG:
-		return "CLANG"
-	case EXPORT:
-		return "EXPORT"
-	case EXTERN:
-		return "EXTERN"
-	case UNSAFE:
-		return "UNSAFE"
-	case DEFINE:
-		return "DEFINE"
 	case ASSIGN:
 		return "ASSIGN"
 	case SUB_ASSIGN:

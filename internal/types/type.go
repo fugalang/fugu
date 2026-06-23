@@ -8,7 +8,7 @@ const (
 	Int // int64
 	Int16
 	Int32
-	int64
+	Int64
 
 	Uint // Uint64
 	Uint8
@@ -25,6 +25,9 @@ const (
 	Bool
 
 	String
+
+	Channel
+	None
 )
 
 type Type struct {
