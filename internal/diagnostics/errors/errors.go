@@ -2,31 +2,52 @@ package errors
 
 import "github.com/fugalang/fugu/internal/token"
 
+type Severity uint8
+
+const (
+	SeverityError Severity = iota
+	SeverityWarning
+	SeverityInfo
+)
+
+func (s Severity) String() string {
+	switch s {
+	case SeverityWarning:
+		return "warning"
+	case SeverityInfo:
+		return "info"
+	default:
+		return "error"
+	}
+}
+
 // Не менять массив!!
 var Errors = []Error{
 	{
 		Code:     0,
 		CodeName: "TestError",
+		Severity: SeverityWarning,
 		Message:  "тестовая ошибка для проверки механизма диагностики",
-		Arrow:    "BLOCK=FALSE",
 		Description: []string{
-			"тест ошибка не должна быть в релизе!!",
+			"тест-ошибка не должна попадать в релиз!!",
 		},
 	},
 	{
 		Code:     1,
 		CodeName: "LexerIllegal",
+		Severity: SeverityError,
 		Message:  "недопустимый символ",
-		Arrow:    "BLOCK=FALSE",
 		Description: []string{
 			"символ не распознан, возможно он не поддерживается или это опечатка",
 		},
 	},
 	{
-		Code:     2,
-		CodeName: "LexerNoClosing",
-		Message:  "не найден закрывающий символ",
-		Arrow:    "Закрой за собой!",
+		Code:          2,
+		CodeName:      "LexerNoClosing",
+		Severity:      SeverityError,
+		Message:       "не найден закрывающий символ",
+		IsShowSnippet: true,
+		Arrow:         "Закрой за собой!",
 		Description: []string{
 			"открывающий символ не был закрыт до конца файла, возможно пропущен или это опечатка",
 			"проверьте, что все открывающие символы (например, кавычки, скобки) имеют соответствующие закрывающие символы",
@@ -37,8 +58,8 @@ var Errors = []Error{
 	{
 		Code:     3,
 		CodeName: "ErrorLoadLibrary",
-		Message:  "не удалось загрузить библиатеку",
-		Arrow:    "BLOCK=FALSE",
+		Severity: SeverityError,
+		Message:  "не удалось загрузить библиотеку",
 		Description: []string{
 			"не удалось загрузить библиотеку. Причина ошибки:",
 		},
@@ -46,8 +67,8 @@ var Errors = []Error{
 	{
 		Code:     4,
 		CodeName: "ExecutingCommands",
+		Severity: SeverityError,
 		Message:  "не удалось выполнить команду",
-		Arrow:    "BLOCK=FALSE",
 		Description: []string{
 			"ошибка выполнения команды: ",
 		},
@@ -55,20 +76,22 @@ var Errors = []Error{
 	{
 		Code:     5,
 		CodeName: "ParsingError",
+		Severity: SeverityError,
 		Message:  "ошибка разбора",
-		Arrow:    "BLOCK=FALSE",
 		Description: []string{
-			"ожидалось: было получино:",
+			"ожидалось: было получено:",
 		},
 	},
 }
 
 type Error struct {
-	Code        uint16
-	CodeName    string   // название ошибки, для удобства
-	Message     string   // сообщение об ошибке, кратокое описание
-	Arrow       string   // строка с указанием места ошибки и пояснением. если равен "BLOCK=FALSE" то не будет блока с кодом, а только указание на строку и столбец
-	Description []string // подробное описание ошибки
+	Code          uint16
+	Severity      Severity
+	CodeName      string // название ошибки, для удобства
+	Message       string // сообщение об ошибке, кратокое описание
+	Arrow         string // строка с указанием места ошибки и пояснением.
+	IsShowSnippet bool
+	Description   []string
 
 	Start uint64
 	End   uint64
@@ -87,4 +110,8 @@ func (e Error) IU(fileModule string, description []string) Error {
 	e.Pos.FileName = fileModule
 	e.Pos.Line = 0
 	return e
+}
+
+func (e *Error) Error() string {
+	return e.Message
 }

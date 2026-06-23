@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/fugalang/fugu/internal/token"
 
@@ -17,7 +18,7 @@ func main() {
 	var er error
 	proj, er = cli.HandlerCmd(proj)
 	if er != nil {
-		da := diagnostics.DiagnosticArena{}
+		da := diagnostics.Arena{}
 		err := errors.Errors[4].Update(token.Token{
 			Pos: token.Position{
 				FileName: "CLI",
@@ -27,7 +28,7 @@ func main() {
 		err.Description = []string{
 			fmt.Sprintf("ошибка выполнения команды: %s", er.Error()),
 		}
-		da.AddError(err)
-		da.Print()
+		da.Add(err)
+		da.Print(os.Stderr)
 	}
 }

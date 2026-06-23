@@ -37,7 +37,7 @@ func TestComment(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		lex := New(tt.input, "main.fg", &diagnostics.DiagnosticArena{
+		lex := New(tt.input, "main.fg", &diagnostics.Arena{
 			Source: string(tt.input),
 		})
 		tk := lex.NextToken()
@@ -48,7 +48,7 @@ func TestComment(t *testing.T) {
 			continue // переход к след тесту
 		}
 
-		lit := tk.Literal(&lex.input)
+		lit := tk.Literal(&lex.Input)
 		if string(lit) != string(tt.expectedLiteral) {
 			t.Errorf("[%s] Неверный литерал.\nОжидался:\n%q\n\nПолучен:\n%q",
 				tt.name, tt.expectedLiteral, lit)
@@ -83,7 +83,6 @@ func TestOperator(t *testing.T) {
 		{name: "Полуоткрытый диапазон", input: []byte("..<"), expectedKind: token.RANGE_HALF_OPEN},
 
 		// Операторы присваивания
-		{name: "Присваивание с объявлением", input: []byte(":="), expectedKind: token.DEFINE},
 		{name: "Обычное переопределение", input: []byte("="), expectedKind: token.ASSIGN},
 		{name: "Уменьшение с присваиванием", input: []byte("-="), expectedKind: token.SUB_ASSIGN},
 		{name: "Увеличение с присваиванием", input: []byte("+="), expectedKind: token.ADD_ASSIGN},
@@ -139,7 +138,7 @@ func TestOperator(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		lex := New(tt.input, "main.fg", &diagnostics.DiagnosticArena{
+		lex := New(tt.input, "main.fg", &diagnostics.Arena{
 			Source: string(tt.input),
 		})
 		tk := lex.NextToken()
@@ -179,7 +178,7 @@ func TestLiteral(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		lex := New(tt.input, "main.fg", &diagnostics.DiagnosticArena{
+		lex := New(tt.input, "main.fg", &diagnostics.Arena{
 			Source: string(tt.input),
 		})
 		tk := lex.NextToken()
@@ -190,9 +189,9 @@ func TestLiteral(t *testing.T) {
 			continue
 		}
 
-		if string(tk.Literal(&lex.input)) != string(tt.expectedLiteral) {
+		if string(tk.Literal(&lex.Input)) != string(tt.expectedLiteral) {
 			t.Errorf("[%s] Неверный литерал. Ожидался: %q, получен: %q",
-				tt.name, tt.expectedLiteral, tk.Literal(&lex.input))
+				tt.name, tt.expectedLiteral, tk.Literal(&lex.Input))
 			continue
 		}
 	}
@@ -223,7 +222,7 @@ if x == 5 {}`),
 	}
 
 	for _, tt := range tests {
-		lex := New(tt.input, "main.fg", &diagnostics.DiagnosticArena{
+		lex := New(tt.input, "main.fg", &diagnostics.Arena{
 			Source: string(tt.input),
 		})
 

@@ -1,6 +1,7 @@
 package diagnostics
 
 import (
+	"os"
 	"testing"
 
 	"github.com/fugalang/fugu/internal/diagnostics/errors"
@@ -8,12 +9,12 @@ import (
 )
 
 func TestPrintDiagnostics(t *testing.T) {
-	arena := &DiagnosticArena{
+	arena := &Arena{
 		Source: `fn main() {
 print("Hello, World!")
 }`}
 
-	arena.AddError(errors.Errors[3].Update(token.Token{
+	arena.Add(errors.Errors[3].Update(token.Token{
 		Kind: token.FN,
 		Pos: token.Position{
 			FileName: "main.fg",
@@ -29,7 +30,7 @@ print("Hello, World!")
 		t.Errorf("Expected arena to have errors, but it does not.")
 	}
 
-	arena.Print()
+	arena.Print(os.Stderr)
 
 	arena.Clear()
 

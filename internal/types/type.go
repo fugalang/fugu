@@ -8,8 +8,9 @@ const (
 	Int // int64
 	Int16
 	Int32
-	int64
+	Int64
 
+	Uint // Uint64
 	Uint8
 	Uint16
 	Uint32
@@ -24,11 +25,20 @@ const (
 	Bool
 
 	String
+
+	Array
+	Pointer
+	Optional
+	Channel
+	Function
+	Struct
+	Interface
+	Enum
+	Generic
+	None
 )
 
 type Type struct {
-	Kind TypeKind
-
-	Array   bool
+	Kind    TypeKind
 	Dynamic bool
 }
