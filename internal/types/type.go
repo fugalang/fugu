@@ -26,13 +26,19 @@ const (
 
 	String
 
+	Array
+	Pointer
+	Optional
 	Channel
+	Function
+	Struct
+	Interface
+	Enum
+	Generic
 	None
 )
 
 type Type struct {
-	Kind TypeKind
-
-	Array   bool
+	Kind    TypeKind
 	Dynamic bool
 }

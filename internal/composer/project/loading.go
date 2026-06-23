@@ -36,7 +36,7 @@ func InitProject(a diagnostics.Arena, name string) *Project {
 			Path:      path,
 			Libraries: LoadLibraries(a),
 
-			Ad: *&diagnostics.Arena{},
+			Ad: diagnostics.Arena{},
 		}
 	}
 
