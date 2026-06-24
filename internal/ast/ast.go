@@ -33,27 +33,64 @@ type Value struct {
 
 const (
 	Invalid NodeType = iota
-	Binary           // 1 + 2 типа
-	Unary
-	Literal
 
+	Program
 	Module
-	Use
-	Let
+	Block
 
+	Items
+	Item
+	Args
+	ArgsTail
+
+	Expr
+	Primary
+	AssignExpr
+	BinaryExpr
+	UnaryExpr
+	CallExpr
+
+	Literal
+	Ident
+
+	ExprStmt
+	LetStmt
+	UseStmt
+	ReturnStmt
+	IfStmt
+
+	Assign
+	Binary
+	Unary
+	Call
+	Let
+	Use
+	Return
 	If
 )
 
 const (
 	OpInvalid Operator = iota
+
 	OpAdd
 	OpSub
 	OpMul
 	OpDiv
 	OpMod
 	OpPow
-)
 
+	OpEq
+	OpNeq
+	OpLt
+	OpGt
+	OpLe
+	OpGe
+
+	OpAnd
+	OpOr
+
+	OpNeg
+)
 const (
 	_ ValueKind = iota
 	String
@@ -76,7 +113,98 @@ func Op(kind token.Kind) Operator {
 		return OpMod
 	case token.POW:
 		return OpPow
+
+	case token.EQ:
+		return OpEq
+	case token.NEQ:
+		return OpNeq
+	case token.LT:
+		return OpLt
+	case token.GT:
+		return OpGt
+	case token.LE:
+		return OpLe
+	case token.GE:
+		return OpGe
+
+	case token.AND:
+		return OpAnd
+	case token.OR:
+		return OpOr
+
 	default:
 		return OpInvalid
+	}
+}
+
+func (n NodeType) String() string {
+	switch n {
+	case Invalid:
+		return "Invalid"
+
+	case Program:
+		return "Program"
+	case Module:
+		return "Module"
+	case Block:
+		return "Block"
+
+	case Items:
+		return "Items"
+	case Item:
+		return "Item"
+	case Args:
+		return "Args"
+	case ArgsTail:
+		return "ArgsTail"
+
+	case Expr:
+		return "Expr"
+	case Primary:
+		return "Primary"
+	case AssignExpr:
+		return "AssignExpr"
+	case BinaryExpr:
+		return "BinaryExpr"
+	case UnaryExpr:
+		return "UnaryExpr"
+	case CallExpr:
+		return "CallExpr"
+
+	case Literal:
+		return "Literal"
+	case Ident:
+		return "Ident"
+
+	case ExprStmt:
+		return "ExprStmt"
+	case LetStmt:
+		return "LetStmt"
+	case UseStmt:
+		return "UseStmt"
+	case ReturnStmt:
+		return "ReturnStmt"
+	case IfStmt:
+		return "IfStmt"
+
+	case Assign:
+		return "Assign"
+	case Binary:
+		return "Binary"
+	case Unary:
+		return "Unary"
+	case Call:
+		return "Call"
+	case Let:
+		return "Let"
+	case Use:
+		return "Use"
+	case Return:
+		return "Return"
+	case If:
+		return "If"
+
+	default:
+		return "Unknown"
 	}
 }

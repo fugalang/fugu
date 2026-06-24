@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/fugalang/fugu/internal/token"
-
 	"github.com/fugalang/fugu/internal/cli"
 	"github.com/fugalang/fugu/internal/composer/project"
 	"github.com/fugalang/fugu/internal/diagnostics"
@@ -19,12 +17,7 @@ func main() {
 	proj, er = cli.HandlerCmd(proj)
 	if er != nil {
 		da := diagnostics.Arena{}
-		err := errors.Errors[4].Update(token.Token{
-			Pos: token.Position{
-				FileName: "CLI",
-				Line:     0,
-			},
-		})
+		err := errors.Errors[4].IU("CLI", []string{""})
 		err.Description = []string{
 			fmt.Sprintf("ошибка выполнения команды: %s", er.Error()),
 		}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/fugalang/fugu/internal/composer/cacher"
 	"github.com/fugalang/fugu/internal/diagnostics"
+	"github.com/fugalang/fugu/internal/diagnostics/errors"
 	"github.com/fugalang/fugu/internal/library"
 	"github.com/fugalang/fugu/pkg/reader"
 )
@@ -36,7 +37,9 @@ func InitProject(a diagnostics.Arena, name string) *Project {
 			Path:      path,
 			Libraries: LoadLibraries(a),
 
-			Ad: diagnostics.Arena{},
+			Ad: diagnostics.Arena{
+				Errors: make([]errors.Error, 0),
+			},
 		}
 	}
 
@@ -58,7 +61,9 @@ func InitProject(a diagnostics.Arena, name string) *Project {
 		Path:      path,
 		Libraries: []library.Library{},
 
-		Ad: diagnostics.Arena{},
+		Ad: diagnostics.Arena{
+			Errors: make([]errors.Error, 0),
+		},
 	}
 }
 
