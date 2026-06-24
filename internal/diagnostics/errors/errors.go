@@ -82,6 +82,15 @@ var Errors = []Error{
 			"ожидалось: было получено:",
 		},
 	},
+	{
+		Code:     6,
+		CodeName: "ErrorActionMap",
+		Severity: SeverityWarning,
+		Message:  "ошибка работы с таблицей",
+		Description: []string{
+			"создайте https://github.com/fugalang/fugu/issues",
+		},
+	},
 }
 
 type Error struct {
