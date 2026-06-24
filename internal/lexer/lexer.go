@@ -1,7 +1,6 @@
 package lexer
 
 import (
-	"unicode"
 	"unicode/utf8"
 
 	"github.com/fugalang/fugu/internal/diagnostics"
@@ -10,537 +9,537 @@ import (
 )
 
 type Lexer struct {
-	Input []byte
-	rn    rune // текущая rune
+	Input    []byte
+	fileName string
+	da       *diagnostics.Arena
 
-	curPos         uint64 // абсолютное смещение c начала файла
-	tokStart       uint64 // абсолютное смещение до начала токена который разбираеться прямо сейчас
-	tokStartLine   uint64 // номер строки начала токена
-	tokStartColumn uint64 // номер колонки начала токена
-	pos            Position
+	pos    int
+	curPos int
+	rn     rune // текущая rune
+	rnSize int
 
-	savePoint saveLexer
-	da        *diagnostics.Arena
-}
+	line int
+	col  int
 
-// для заморозки состояния
-type saveLexer struct {
-	rn             rune
-	curPos         uint64
-	tokStart       uint64
-	tokStartLine   uint64
-	tokStartColumn uint64
-	pos            Position
+	savePos  int
+	saveLine int
+	saveCol  int
+	saveRn   rune
+	saveSize int
+
+	tokPos  int
+	tokLine int
+	tokCol  int
 }
 
 func New(input []byte, fileName string, da *diagnostics.Arena) *Lexer {
 	if input == nil {
-		input = make([]byte, 0)
+		input = input[:0]
 	}
 	lex := &Lexer{
-		Input:  input,
-		curPos: 0,
-		pos: Position{
-			FileName: fileName,
-			Line:     1,
-			Column:   0,
-			Offset:   0,
-		},
+		Input:    input,
+		fileName: fileName,
+		da:       da,
+		line:     1,
+		col:      0,
 	}
-
-	lex.da = da
-
 	lex.advance()
 	return lex
 }
 
-func (lex *Lexer) Reset() {
-	lex = New(lex.Input, lex.pos.FileName, lex.da)
+func (lex *Lexer) advance() {
+	if lex.curPos >= len(lex.Input) {
+		lex.pos = lex.curPos
+		lex.rn = 0
+		lex.rnSize = 0
+		return
+	}
+
+	lex.pos = lex.curPos
+
+	if b := lex.Input[lex.curPos]; b < utf8.RuneSelf {
+		lex.rn = rune(b)
+		lex.rnSize = 1
+	} else {
+		r, size := utf8.DecodeRune(lex.Input[lex.curPos:])
+		lex.rn = r
+		lex.rnSize = size
+	}
+
+	lex.curPos += lex.rnSize
+
+	if lex.rn == '\n' {
+		lex.line++
+		lex.col = 0
+	} else {
+		lex.col++
+	}
+}
+
+func (lex *Lexer) peek() rune {
+	if lex.curPos >= len(lex.Input) {
+		return 0
+	}
+	if b := lex.Input[lex.curPos]; b < utf8.RuneSelf {
+		return rune(b)
+	}
+	r, _ := utf8.DecodeRune(lex.Input[lex.curPos:])
+	return r
+}
+
+// снимки состояния
+
+func (lex *Lexer) freeze() {
+	lex.savePos = lex.pos
+	lex.saveLine = lex.line
+	lex.saveCol = lex.col
+	lex.saveRn = lex.rn
+	lex.saveSize = lex.rnSize
+}
+
+func (lex *Lexer) unfreeze() {
+	lex.pos = lex.savePos
+	lex.curPos = lex.savePos + lex.saveSize
+	lex.line = lex.saveLine
+	lex.col = lex.saveCol
+	lex.rn = lex.saveRn
+	lex.rnSize = lex.saveSize
+}
+
+func (lex *Lexer) tok(kind Kind) Token {
+	return Token{
+		Kind: kind,
+		Pos: Position{
+			FileName: lex.fileName,
+			Line:     uint64(lex.tokLine),
+			Column:   uint64(lex.tokCol),
+			Offset:   uint64(lex.tokPos),
+		},
+		Start: uint64(lex.tokPos),
+		End:   uint64(lex.pos),
+	}
 }
 
 func (lex *Lexer) NextToken() Token {
-	lex.tokStart = lex.pos.Offset
-	lex.tokStartLine = lex.pos.Line
-	lex.tokStartColumn = lex.pos.Column
+	lex.tokPos = lex.pos
+	if isSpace(lex.rn) {
+		for isSpace(lex.rn) {
+			lex.advance()
+		}
+		return lex.tok(SPACING)
+	}
+
+	lex.tokPos = lex.pos
+	lex.tokLine = lex.line
+	lex.tokCol = lex.col
 
 	if lex.rn == 0 {
-		return lex.NewToken(EOF)
+		return lex.tok(EOF)
 	}
 
-	if unicode.IsSpace(lex.rn) {
-		for unicode.IsSpace(lex.rn) {
-			lex.advance()
-		}
-		return lex.NewToken(SPACING)
-	}
+	ch := lex.rn
+	lex.advance()
 
-	switch lex.rn {
+	switch ch {
 	case '/':
-		if lex.peekRn() == '/' {
-			return lex.readLineComment()
-		} else if lex.peekRn() == '*' {
-			return lex.readMultiLineComment()
-		} else if lex.peekRn() == '=' {
-			lex.advance().advance()
-			return lex.NewToken(DIV_ASSIGN)
+		switch lex.rn {
+		case '/':
+			return lex.lineComment()
+		case '*':
+			return lex.multiLineComment()
+		case '=':
+			lex.advance()
+			return lex.tok(DIV_ASSIGN)
 		}
-
-		lex.advance()
-		return lex.NewToken(DIV)
+		return lex.tok(DIV)
 
 	case '.':
-		if lex.peekRn() == '.' {
-			lex.advance() // едим первую .
-			if lex.peekRn() == '=' {
-				lex.advance().advance()
-				return lex.NewToken(RANGE_INCL)
-			} else if lex.peekRn() == '<' {
-				lex.advance().advance()
-				return lex.NewToken(RANGE_HALF_OPEN)
-			} else if lex.peekRn() == '.' {
-				lex.advance().advance()
-				return lex.NewToken(OP_ARRAY)
-			}
+		if lex.rn == '.' {
 			lex.advance()
-			return lex.NewToken(OP_RANGE)
+			switch lex.rn {
+			case '=':
+				lex.advance()
+				return lex.tok(RANGE_INCL)
+			case '<':
+				lex.advance()
+				return lex.tok(RANGE_HALF_OPEN)
+			case '.':
+				lex.advance()
+				return lex.tok(OP_ARRAY)
+			}
+			return lex.tok(OP_RANGE)
 		}
-		lex.advance()
-		return lex.NewToken(DOT)
+		return lex.tok(DOT)
 
 	case '<':
-		if lex.peekRn() == '<' {
-			lex.advance().advance()
-			return lex.NewToken(SHR_LESS)
-		} else if lex.peekRn() == '=' {
-			lex.advance().advance()
-			return lex.NewToken(LE)
-		} else if lex.peekRn() == '-' {
-			return lex.NewToken(CHAN_SEND)
+		switch lex.rn {
+		case '<':
+			lex.advance()
+			return lex.tok(SHR_LESS)
+		case '=':
+			lex.advance()
+			return lex.tok(LE)
+		case '-':
+			return lex.tok(CHAN_SEND)
 		}
-		lex.advance()
-		return lex.NewToken(LT)
+		return lex.tok(LT)
 
 	case '>':
-		if lex.peekRn() == '>' {
-			lex.advance().advance()
-			return lex.NewToken(SHR_GREATER)
-		} else if lex.peekRn() == '=' {
-			lex.advance().advance()
-			return lex.NewToken(GE)
+		switch lex.rn {
+		case '>':
+			lex.advance()
+			return lex.tok(SHR_GREATER)
+		case '=':
+			lex.advance()
+			return lex.tok(GE)
 		}
-		lex.advance()
-		return lex.NewToken(GT)
+		return lex.tok(GT)
 
 	case '-':
-		if lex.peekRn() == '=' {
-			lex.advance().advance()
-			return lex.NewToken(SUB_ASSIGN)
-		} else if lex.peekRn() == '>' {
-			lex.advance().advance()
-			return lex.NewToken(RTN_ARROW)
+		switch lex.rn {
+		case '=':
+			lex.advance()
+			return lex.tok(SUB_ASSIGN)
+		case '>':
+			lex.advance()
+			return lex.tok(RTN_ARROW)
 		}
-
-		lex.advance()
-		return lex.NewToken(SUB)
+		return lex.tok(SUB)
 
 	case '+':
-		if lex.peekRn() == '=' {
-			lex.advance().advance()
-			return lex.NewToken(ADD_ASSIGN)
+		if lex.rn == '=' {
+			lex.advance()
+			return lex.tok(ADD_ASSIGN)
 		}
-		lex.advance()
-		return lex.NewToken(ADD)
+		return lex.tok(ADD)
 
 	case '*':
-		if lex.peekRn() == '=' {
-			lex.advance().advance()
-			return lex.NewToken(MUL_ASSIGN)
+		if lex.rn == '=' {
+			lex.advance()
+			return lex.tok(MUL_ASSIGN)
 		}
-		lex.advance()
-		return lex.NewToken(MUL)
+		return lex.tok(MUL)
 
 	case '%':
-		if lex.peekRn() == '=' {
-			lex.advance().advance()
-			return lex.NewToken(MOD_ASSIGN)
+		if lex.rn == '=' {
+			lex.advance()
+			return lex.tok(MOD_ASSIGN)
 		}
-		lex.advance()
-		return lex.NewToken(MOD)
+		return lex.tok(MOD)
 
 	case '^':
-		if lex.peekRn() == '=' {
-			lex.advance().advance()
-			return lex.NewToken(POW_ASSIGN)
+		if lex.rn == '=' {
+			lex.advance()
+			return lex.tok(POW_ASSIGN)
 		}
-		lex.advance()
-		return lex.NewToken(POW)
+		return lex.tok(POW)
 
 	case '~':
-		lex.advance()
-		return lex.NewToken(BITWISE_NOT)
+		return lex.tok(BITWISE_NOT)
 
 	case '&':
-		if lex.peekRn() == '&' {
-			lex.advance().advance()
-			return lex.NewToken(AND)
+		if lex.rn == '&' {
+			lex.advance()
+			return lex.tok(AND)
 		}
-		lex.advance()
-		return lex.NewToken(REF)
+		return lex.tok(REF)
 
 	case '!':
-		if lex.peekRn() == '=' {
-			lex.advance().advance()
-			return lex.NewToken(NEQ)
+		if lex.rn == '=' {
+			lex.advance()
+			return lex.tok(NEQ)
 		}
-		lex.advance()
-		return lex.NewToken(BANG)
+		return lex.tok(BANG)
 
 	case '?':
-		if lex.peekRn() == ':' {
-			lex.advance().advance()
-			return lex.NewToken(DEFAULT)
-		} else if lex.peekRn() == '.' {
-			lex.advance().advance()
-			return lex.NewToken(OPTIONAL_DOT)
+		switch lex.rn {
+		case ':':
+			lex.advance()
+			return lex.tok(DEFAULT)
+		case '.':
+			lex.advance()
+			return lex.tok(OPTIONAL_DOT)
 		}
+		return lex.tok(ILLEGAL)
 
 	case '=':
-		if lex.peekRn() == '=' {
-			lex.advance().advance()
-			return lex.NewToken(EQ)
-		} else if lex.peekRn() == '>' {
-			lex.advance().advance()
-			return lex.NewToken(ARROW)
+		switch lex.rn {
+		case '=':
+			lex.advance()
+			return lex.tok(EQ)
+		case '>':
+			lex.advance()
+			return lex.tok(ARROW)
 		}
-
-		lex.advance()
-		return lex.NewToken(ASSIGN)
+		return lex.tok(ASSIGN)
 
 	case '|':
-		if lex.peekRn() == '|' {
-			lex.advance().advance()
-			return lex.NewToken(OR)
-		} else if lex.peekRn() == '>' {
-			lex.advance().advance()
-			return lex.NewToken(PIPE)
+		switch lex.rn {
+		case '|':
+			lex.advance()
+			return lex.tok(OR)
+		case '>':
+			lex.advance()
+			return lex.tok(PIPE)
 		}
+		return lex.tok(ILLEGAL)
 
 	case ':':
-		lex.advance()
-		return lex.NewToken(COLON)
-
+		return lex.tok(COLON)
 	case '(':
-		lex.advance()
-		return lex.NewToken(L_PAREN)
-
+		return lex.tok(L_PAREN)
 	case ')':
-		lex.advance()
-		return lex.NewToken(R_PAREN)
-
+		return lex.tok(R_PAREN)
 	case '{':
-		lex.advance()
-		return lex.NewToken(L_BRACE)
-
+		return lex.tok(L_BRACE)
 	case '}':
-		lex.advance()
-		return lex.NewToken(R_BRACE)
-
+		return lex.tok(R_BRACE)
 	case '[':
-		lex.advance()
-		return lex.NewToken(L_BRACK)
-
+		return lex.tok(L_BRACK)
 	case ']':
-		lex.advance()
-		return lex.NewToken(R_BRACK)
-
+		return lex.tok(R_BRACK)
 	case ';':
-		lex.advance()
-		return lex.NewToken(END)
-
+		return lex.tok(END)
 	case ',':
-		lex.advance()
-		return lex.NewToken(COMMA)
+		return lex.tok(COMMA)
 
 	case '"':
 		return lex.readString()
 	case '`':
 		return lex.readRawString()
-
 	case '\'':
 		return lex.readChar()
 
 	default:
-		if unicode.IsDigit(lex.rn) {
-			return lex.readNumber()
-		} else if unicode.IsLetter(lex.rn) || lex.rn == '_' {
-			for unicode.IsLetter(lex.rn) || unicode.IsDigit(lex.rn) || lex.rn == '_' {
-				lex.advance()
-			}
-
-			return lex.NewToken(SearchKeyword(lex.Input[lex.tokStart:lex.pos.Offset]))
+		if ch >= '0' && ch <= '9' {
+			return lex.readNumber(ch)
 		}
 
-		lex.advance()
-		return lex.NewToken(ILLEGAL)
-
+		if isIdentStart(ch) {
+			return lex.readIdent()
+		}
+		return lex.tok(ILLEGAL)
 	}
-
-	return lex.NewToken(ILLEGAL)
 }
 
-func (lex *Lexer) readLineComment() Token {
-	lex.advance().advance() // '//'
+func isSpace(r rune) bool {
+	switch r {
+	case ' ', '\t', '\n', '\r', '\v', '\f':
+		return true
+	}
+	return r > 0x7F && isSpaceUnicode(r)
+}
 
-	// останавливаемся перед '\n'
+func isSpaceUnicode(r rune) bool {
+	switch r {
+	case 0x00A0,
+		0x1680,
+		0x2000, 0x2001, 0x2002, 0x2003,
+		0x2004, 0x2005, 0x2006, 0x2007,
+		0x2008, 0x2009, 0x200A,
+		0x2028, 0x2029,
+		0x202F, 0x205F,
+		0x3000,
+		0xFEFF:
+		return true
+	}
+	return false
+}
+
+func isIdentStart(r rune) bool {
+	return r == '_' ||
+		(r >= 'a' && r <= 'z') ||
+		(r >= 'A' && r <= 'Z') ||
+		r > 0x7F && isLetterUnicode(r)
+}
+
+func isIdentContinue(r rune) bool {
+	return r == '_' ||
+		(r >= 'a' && r <= 'z') ||
+		(r >= 'A' && r <= 'Z') ||
+		(r >= '0' && r <= '9') ||
+		r > 0x7F && (isLetterUnicode(r) || isDigitUnicode(r))
+}
+
+func isLetterUnicode(r rune) bool {
+	return r >= 0xAA
+}
+
+func isDigitUnicode(r rune) bool {
+	return r >= 0x0660
+}
+
+func (lex *Lexer) lineComment() Token {
+	lex.advance() // '/'
 	for lex.rn != '\n' && lex.rn != 0 {
 		lex.advance()
 	}
-
-	return lex.NewToken(COMMENT)
+	return lex.tok(COMMENT)
 }
 
-func (lex *Lexer) readMultiLineComment() Token {
-	lex.advance().advance() // '/*'
-
-	lex.freezing()
-
+func (lex *Lexer) multiLineComment() Token {
+	lex.advance() // '*'
+	lex.freeze()
 	for {
 		if lex.rn == 0 {
-			tk := lex.NewToken(ILLEGAL)
+			tk := lex.tok(ILLEGAL)
 			lex.da.Add(errors.Errors[2].Update(tk))
 			lex.unfreeze()
-			lex.stabilization()
+			lex.stabilize()
 			return tk
 		}
-
-		if lex.rn == '*' && lex.peekRn() == '/' {
-			lex.advance().advance() // '*', '/'
+		if lex.rn == '*' && lex.peek() == '/' {
+			lex.advance()
+			lex.advance()
 			break
 		}
-
 		lex.advance()
 	}
-
-	return lex.NewToken(M_COMMENT)
+	return lex.tok(M_COMMENT)
 }
 
 func (lex *Lexer) readString() Token {
-	lex.advance() // '"'
 	isTemplate := false
-
-	lex.freezing()
+	lex.freeze()
 
 	for lex.rn != '"' && lex.rn != 0 {
 		if lex.rn == '\\' {
-			lex.advance().advance()
+			lex.advance()
+			lex.advance()
 			continue
 		}
-
-		if lex.rn == '$' && lex.peekRn() == '{' {
+		if lex.rn == '$' && lex.peek() == '{' {
 			isTemplate = true
 		}
-
 		lex.advance()
 	}
 
 	if lex.rn == 0 {
-		tk := lex.NewToken(ILLEGAL)
+		tk := lex.tok(ILLEGAL)
 		lex.da.Add(errors.Errors[2].Update(tk))
 		lex.unfreeze()
-		lex.stabilization()
+		lex.stabilize()
 		return tk
 	}
 
 	lex.advance() // '"'
 
 	if isTemplate {
-		return lex.NewToken(T_STRING)
+		return lex.tok(T_STRING)
 	}
-	return lex.NewToken(STRING)
+	return lex.tok(STRING)
 }
 
 func (lex *Lexer) readRawString() Token {
-	lex.advance() // '`'
-
-	lex.freezing()
-
+	lex.freeze()
 	for lex.rn != '`' && lex.rn != 0 {
 		lex.advance()
 	}
-
 	if lex.rn == 0 {
-		tk := lex.NewToken(ILLEGAL)
+		tk := lex.tok(ILLEGAL)
 		lex.da.Add(errors.Errors[2].Update(tk))
 		lex.unfreeze()
-		lex.stabilization()
+		lex.stabilize()
 		return tk
 	}
-
 	lex.advance()
-	return lex.NewToken(RAW_STRING)
+	return lex.tok(RAW_STRING)
 }
 
 func (lex *Lexer) readChar() Token {
-	lex.advance()
-
 	if lex.rn == '\\' {
-		lex.advance().advance()
+		lex.advance()
+		lex.advance()
 	} else if lex.rn != '\'' && lex.rn != 0 {
 		lex.advance()
 	}
-
 	if lex.rn != '\'' {
-		return lex.NewToken(ILLEGAL)
+		return lex.tok(ILLEGAL)
 	}
-
 	lex.advance()
-	return lex.NewToken(CHARACTER)
+	return lex.tok(CHARACTER)
 }
 
-func (lex *Lexer) readNumber() Token {
+func (lex *Lexer) readIdent() Token {
+	for isIdentContinue(lex.rn) {
+		lex.advance()
+	}
+	lit := lex.Input[lex.tokPos:lex.pos]
+	return lex.tok(SearchKeyword(lit))
+}
+
+func (lex *Lexer) readNumber(first rune) Token {
+	_ = first
 	isFloat := false
 	isIdent := false
 
-	for unicode.IsDigit(lex.rn) || unicode.IsLetter(lex.rn) || lex.rn == '_' || lex.rn == '.' {
-
-		if lex.rn == '.' {
+	for {
+		ch := lex.rn
+		if ch >= '0' && ch <= '9' {
+			lex.advance()
+			continue
+		}
+		if ch == '.' {
 			if isIdent || isFloat {
 				break
 			}
-			if !unicode.IsDigit(lex.peekRn()) {
+			next := lex.peek()
+			if next < '0' || next > '9' {
 				break
 			}
 			isFloat = true
+			lex.advance()
+			continue
 		}
-
-		if unicode.IsLetter(lex.rn) || lex.rn == '_' {
+		if isIdentContinue(ch) {
 			isIdent = true
+			lex.advance()
+			continue
 		}
-
-		lex.advance()
+		break
 	}
 
-	literal := lex.Input[lex.tokStart:lex.pos.Offset]
+	lit := lex.Input[lex.tokPos:lex.pos]
 
 	if isIdent {
-		if literal[len(literal)-1] == 'i' && (!isFloat || len(literal) > 2) {
+		n := len(lit)
+		if n >= 2 && lit[n-1] == 'i' {
 			onlyDigits := true
-			for i := 0; i < len(literal)-1; i++ {
-				if (literal[i] < '0' || literal[i] > '9') && literal[i] != '.' {
+			for _, b := range lit[:n-1] {
+				if (b < '0' || b > '9') && b != '.' {
 					onlyDigits = false
 					break
 				}
 			}
 			if onlyDigits {
-				return lex.NewToken(IMAGINARY)
+				return lex.tok(IMAGINARY)
 			}
 		}
-
-		return lex.NewToken(IDENTIFIER)
+		return lex.tok(IDENTIFIER)
 	}
 
 	if isFloat {
-		return lex.NewToken(FLOATING)
+		return lex.tok(FLOATING)
 	}
-	return lex.NewToken(INTEGER)
+	return lex.tok(INTEGER)
 }
 
-func (lex *Lexer) stabilization() {
-	tkws := map[Kind]bool{
-		FN:     true,
-		IF:     true,
-		ELSE:   true,
-		SWITCH: true,
-		CASE:   true,
-		RETURN: true,
-		ENUM:   true,
-		SELECT: true,
+func (lex *Lexer) stabilize() {
+	k := map[Kind]bool{
+		FN: true, IF: true, ELSE: true, SWITCH: true,
+		CASE: true, RETURN: true, ENUM: true, SELECT: true,
 	}
-
 	for {
-		lex.freezing()
+		lex.freeze()
 		tk := lex.NextToken()
-
-		if tk.Kind == EOF {
+		switch {
+		case tk.Kind == EOF:
 			return
-		} else if tk.Kind == SPACING || tk.Kind == COMMENT || tk.Kind == M_COMMENT {
+		case tk.Kind == SPACING || tk.Kind == COMMENT || tk.Kind == M_COMMENT:
 			continue
-		} else if tkws[tk.Kind] {
-			lex.unfreeze()
-			return
-		} else if tk.Kind == R_BRACE || tk.Kind == END {
+		case k[tk.Kind], tk.Kind == R_BRACE, tk.Kind == END:
 			lex.unfreeze()
 			return
 		}
 	}
-}
-
-func (lex *Lexer) advance() *Lexer {
-	if lex.curPos >= uint64(len(lex.Input)) {
-		lex.rn = 0 // \x00
-		lex.pos.Offset = lex.curPos
-		return lex
-	}
-
-	r, size := utf8.DecodeRune(lex.Input[lex.curPos:])
-
-	lex.rn = r
-	lex.pos.Offset = lex.curPos
-	lex.curPos += uint64(size)
-
-	if lex.rn == '\n' {
-		lex.pos.Line++
-		lex.pos.Column = 1
-	} else {
-		lex.pos.Column++
-	}
-
-	return lex
-}
-
-// возвращает следущий симвл после Lexer.curPos
-func (lex *Lexer) peekRn() rune {
-	if lex.curPos >= uint64(len(lex.Input)) {
-		return 0
-	}
-
-	r, _ := utf8.DecodeRune(lex.Input[lex.curPos:])
-
-	return r
-}
-
-func (lex *Lexer) NewToken(kind Kind) Token {
-	return Token{
-		Kind: kind,
-		Pos: Position{
-			FileName: lex.pos.FileName,
-			Line:     lex.tokStartLine,
-			Column:   lex.tokStartColumn,
-			Offset:   lex.tokStart,
-		},
-		Start: lex.tokStart,
-		End:   lex.pos.Offset,
-	}
-}
-
-// заморозить состояния
-func (lex *Lexer) freezing() {
-	lex.savePoint = saveLexer{
-		rn:             lex.rn,
-		curPos:         lex.curPos,
-		tokStart:       lex.tokStart,
-		tokStartLine:   lex.tokStartLine,
-		tokStartColumn: lex.tokStartColumn,
-		pos:            lex.pos,
-	}
-}
-
-// разморозить :)
-func (lex *Lexer) unfreeze() {
-	lex.rn = lex.savePoint.rn
-	lex.curPos = lex.savePoint.curPos
-	lex.tokStart = lex.savePoint.tokStart
-	lex.tokStartLine = lex.savePoint.tokStartLine
-	lex.tokStartColumn = lex.savePoint.tokStartColumn
-	lex.pos = lex.savePoint.pos
 }
