@@ -449,6 +449,7 @@ func (lex *Lexer) stabilization() {
 	tkws := map[Kind]bool{
 		FN:     true,
 		IF:     true,
+		ELSE:   true,
 		SWITCH: true,
 		CASE:   true,
 		RETURN: true,

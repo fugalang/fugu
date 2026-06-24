@@ -23,3 +23,7 @@ fmt:
 
 clean:
 	rm -rf $(BUILD_DIR)
+
+gen:
+	go run ./cmd/generator/action/map/main.go
+	go run ./cmd/generator/action/slice/main.go

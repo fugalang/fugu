@@ -228,7 +228,8 @@ func GenerateActionTable(src *map[int]map[token.Kind]ActionStruct) string {
 	//	out.WriteString(s)
 	//}
 	wn := func(s string) {
-		out.WriteString(s + "\n")
+		out.WriteString(s)
+		out.WriteString("\n")
 	}
 	wf := func(format string, args ...any) {
 		out.WriteString(fmt.Sprintf(format, args...))

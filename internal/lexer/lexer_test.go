@@ -162,7 +162,7 @@ func TestLiteral(t *testing.T) {
 		{name: "Идентификатор с цифрами и подчёркиванием", input: []byte("2stack"), expectedKind: token.IDENTIFIER, expectedLiteral: []byte("2stack")},
 		{name: "Обычный идентификатор с подчёркивания", input: []byte("__init__"), expectedKind: token.IDENTIFIER, expectedLiteral: []byte("__init__")},
 
-		{name: "Ключевое слово module", input: []byte("module"), expectedKind: token.MODULE, expectedLiteral: []byte("module")},
+		{name: "Ключевое слово module", input: []byte("mod"), expectedKind: token.MODULE, expectedLiteral: []byte("mod")},
 		{name: "Ключевое слово fn", input: []byte("fn"), expectedKind: token.FN, expectedLiteral: []byte("fn")},
 
 		{name: "Целое число (INTEGER)", input: []byte("12443"), expectedKind: token.INTEGER, expectedLiteral: []byte("12443")},

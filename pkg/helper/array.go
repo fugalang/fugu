@@ -14,7 +14,6 @@ func ToFields(b []byte) []string {
 	res := make([]string, 0, 16)
 
 	i := 0
-
 	for i < len(b) {
 		for i < len(b) && isSpace(b[i]) {
 			i++
@@ -27,9 +26,7 @@ func ToFields(b []byte) []string {
 		}
 
 		if start < i {
-			res = append(res,
-				*(*string)(unsafe.Pointer(&b[start])),
-			)
+			res = append(res, string(b[start:i]))
 		}
 	}
 
