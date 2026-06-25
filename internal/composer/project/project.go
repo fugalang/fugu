@@ -1,7 +1,9 @@
 package project
 
 import (
+	"github.com/fugalang/fugu/internal/ast"
 	"github.com/fugalang/fugu/internal/diagnostics"
+	"github.com/fugalang/fugu/internal/diagnostics/errors"
 	"github.com/fugalang/fugu/internal/library"
 )
 
@@ -31,4 +33,11 @@ type File struct {
 	Name       string
 	Type       KindFile
 	RawContent []byte // необработанное содержимое файла
+	Ast        *ast.AstArena
+}
+
+func RunNProject() errors.Error {
+	// parser := recursive.New([]byte{}, "")
+	// arena := parser.Parse()
+	return errors.Error{}
 }

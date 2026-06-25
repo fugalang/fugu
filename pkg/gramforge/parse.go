@@ -94,6 +94,7 @@ func parseDirective(g *Grammar, line string) error {
 		if len(parts) != 2 {
 			return fmt.Errorf("%%import хочет ровно один путь")
 		}
+		// TODO
 		return nil
 	default:
 		return fmt.Errorf("не знаю директиву %s", parts[0])
