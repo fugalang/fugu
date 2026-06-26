@@ -20,7 +20,6 @@ const (
 	IMAGINARY  // 123i
 	FLOATING   // 12.3
 	STRING     // "abc"
-	T_STRING   // "hello ${x}"
 	RAW_STRING // `abc`
 	CHARACTER  // 'a'
 	IDENTIFIER // myVar
@@ -134,7 +133,7 @@ func (tk *Kind) Group() Kind {
 	switch *tk {
 	case INTEGER, IMAGINARY, FLOATING:
 		return G_NUMBER
-	case STRING, T_STRING, RAW_STRING, CHARACTER:
+	case STRING, RAW_STRING, CHARACTER:
 		return G_STRING
 	case SUB, ADD, MUL, DIV, MOD, POW:
 		return G_ARITHMETIC
@@ -155,7 +154,6 @@ func Expand(tk Kind) []Kind {
 			IMAGINARY,
 			FLOATING,
 			STRING,
-			T_STRING,
 			RAW_STRING,
 			CHARACTER,
 			IDENTIFIER,
@@ -169,7 +167,6 @@ func Expand(tk Kind) []Kind {
 	case G_STRING:
 		return []Kind{
 			STRING,
-			T_STRING,
 			RAW_STRING,
 			CHARACTER,
 		}
@@ -207,21 +204,48 @@ type Position struct {
 }
 
 func (tk Token) Literal(source *[]byte) []byte {
+	b := (*source)[tk.Start:tk.End]
+
 	switch tk.Kind {
-	case STRING:
-		return (*source)[tk.Start+1 : tk.End-1]
-	case T_STRING:
-		return (*source)[tk.Start+1 : tk.End-1]
-	case RAW_STRING:
-		return (*source)[tk.Start+1 : tk.End-1]
+	case STRING, RAW_STRING:
+		if len(b) >= 1 && b[0] == '"' {
+			if len(b) >= 2 && b[len(b)-1] == '"' {
+				return b[1 : len(b)-1]
+			}
+			return b[1:]
+		}
+
+		if len(b) >= 1 && b[0] == '`' {
+			if len(b) >= 2 && b[len(b)-1] == '`' {
+				return b[1 : len(b)-1]
+			}
+			return b[1:]
+		}
+
+		return b
+
 	case CHARACTER:
-		return (*source)[tk.Start+1 : tk.End-1]
+		if len(b) >= 2 && b[0] == '\'' && b[len(b)-1] == '\'' {
+			return b[1 : len(b)-1]
+		}
+		return b
+
 	case COMMENT:
-		return (*source)[tk.Start+2 : tk.End]
+		if len(b) >= 2 && b[0] == '/' && b[1] == '/' {
+			return b[2:]
+		}
+		return b
+
 	case M_COMMENT:
-		return (*source)[tk.Start+2 : tk.End-2]
+		if len(b) >= 4 &&
+			b[0] == '/' && b[1] == '*' &&
+			b[len(b)-2] == '*' && b[len(b)-1] == '/' {
+			return b[2 : len(b)-2]
+		}
+		return b
+
 	default:
-		return (*source)[tk.Start:tk.End]
+		return b
 	}
 }
 
@@ -285,8 +309,6 @@ func (tk Kind) String() string {
 		return "FLOATING"
 	case STRING:
 		return "STRING"
-	case T_STRING:
-		return "T_STRING"
 	case RAW_STRING:
 		return "RAW_STRING"
 	case CHARACTER:

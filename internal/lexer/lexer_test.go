@@ -1,10 +1,12 @@
 package lexer
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/fugalang/fugu/internal/diagnostics"
 	"github.com/fugalang/fugu/internal/token"
+	"github.com/k0kubun/pp/v3"
 )
 
 func TestComment(t *testing.T) {
@@ -174,7 +176,6 @@ func TestLiteral(t *testing.T) {
 		{name: "Сырая строка (RAW_STRING)", input: []byte("`multiline code`"), expectedKind: token.RAW_STRING, expectedLiteral: []byte("multiline code")},
 		{name: "Одиночный символ (CHARACTER)", input: []byte("'я'"), expectedKind: token.CHARACTER, expectedLiteral: []byte("я")},
 		{name: "Экранированный символ (CHARACTER)", input: []byte("'\\n'"), expectedKind: token.CHARACTER, expectedLiteral: []byte("\\n")},
-		{name: "Строка с интерполяцией (T_STRING)", input: []byte(`"status: ${code}"`), expectedKind: token.T_STRING, expectedLiteral: []byte("status: ${code}")},
 	}
 
 	for _, tt := range tests {
@@ -237,5 +238,34 @@ if x == 5 {}`),
 				tt.name, tt.expectedKind.String(), secondTok.Kind.String())
 		}
 
+	}
+}
+
+func TestLexerString(t *testing.T) {
+	input := []byte(`
+"привет ${mod "${gen_name(pkg)}" } "
+`)
+	lex := New(input, "main.fg", diagnostics.New(string(input)))
+
+	tks := []token.Token{}
+	for {
+		tk := lex.NextToken()
+		switch tk.Kind {
+		case token.COMMENT, token.M_COMMENT, token.SPACING:
+			continue
+		}
+		if tk.Kind == token.EOF {
+			break
+		}
+		tks = append(tks, tk)
+	}
+
+	pp.Println(tks)
+	for _, t := range tks {
+		fmt.Println(
+			t.Kind.String()+":",
+			string(t.Literal(&input)),
+			t.Start,
+		)
 	}
 }

@@ -30,6 +30,9 @@ type Lexer struct {
 	tokPos  int
 	tokLine int
 	tokCol  int
+
+	interpStack    []int
+	inStringResume bool
 }
 
 func New(input []byte, fileName string, da *diagnostics.Arena) *Lexer {
@@ -135,6 +138,12 @@ func (lex *Lexer) NextToken() Token {
 
 	if lex.rn == 0 {
 		return lex.tok(EOF)
+	}
+
+	if lex.inStringResume {
+		lex.inStringResume = false
+		lex.tokPos, lex.tokLine, lex.tokCol = lex.pos, lex.line, lex.col
+		return lex.readString()
 	}
 
 	ch := lex.rn
@@ -244,6 +253,16 @@ func (lex *Lexer) NextToken() Token {
 		}
 		return lex.tok(REF)
 
+	case '$':
+		if lex.rn == '{' {
+			lex.advance()
+			if n := len(lex.interpStack); n > 0 {
+				lex.interpStack[n-1]++
+			}
+			return lex.tok(L_BRACE)
+		}
+		return lex.tok(ILLEGAL)
+
 	case '!':
 		if lex.rn == '=' {
 			lex.advance()
@@ -291,8 +310,18 @@ func (lex *Lexer) NextToken() Token {
 	case ')':
 		return lex.tok(R_PAREN)
 	case '{':
+		if n := len(lex.interpStack); n > 0 {
+			lex.interpStack[n-1]++
+		}
 		return lex.tok(L_BRACE)
 	case '}':
+		if n := len(lex.interpStack); n > 0 {
+			lex.interpStack[n-1]--
+			if lex.interpStack[n-1] == 0 {
+				lex.interpStack = lex.interpStack[:n-1]
+				lex.inStringResume = true
+			}
+		}
 		return lex.tok(R_BRACE)
 	case '[':
 		return lex.tok(L_BRACK)
@@ -399,18 +428,22 @@ func (lex *Lexer) multiLineComment() Token {
 }
 
 func (lex *Lexer) readString() Token {
-	isTemplate := false
 	lex.freeze()
 
 	for lex.rn != '"' && lex.rn != 0 {
 		if lex.rn == '\\' {
 			lex.advance()
-			lex.advance()
+			if lex.rn != 0 {
+				lex.advance()
+			}
 			continue
 		}
+
 		if lex.rn == '$' && lex.peek() == '{' {
-			isTemplate = true
+			lex.interpStack = append(lex.interpStack, 0)
+			return lex.tok(STRING)
 		}
+
 		lex.advance()
 	}
 
@@ -423,10 +456,6 @@ func (lex *Lexer) readString() Token {
 	}
 
 	lex.advance() // '"'
-
-	if isTemplate {
-		return lex.tok(T_STRING)
-	}
 	return lex.tok(STRING)
 }
 

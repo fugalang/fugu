@@ -22,14 +22,29 @@ type Node struct {
 	Data4 float64
 }
 
+type TemplatePart struct {
+	IsExpr bool
+	Str    string
+	Expr   int
+}
+
 type Value struct {
 	Type ValueKind
 
-	STR  string
+	S8   string
 	I64  int64
 	F64  float64
 	C128 complex128
 }
+
+const (
+	_ ValueKind = iota
+	String
+	Int
+	Float
+	Complex
+	Char
+)
 
 const (
 	Invalid NodeType = iota
@@ -37,6 +52,9 @@ const (
 	Program
 	Module
 	Block
+
+	// спец типы
+	Template
 
 	Items
 	Item
@@ -90,13 +108,6 @@ const (
 	OpOr
 
 	OpNeg
-)
-const (
-	_ ValueKind = iota
-	String
-	Int
-	Float
-	Complex
 )
 
 func Op(kind token.Kind) Operator {
