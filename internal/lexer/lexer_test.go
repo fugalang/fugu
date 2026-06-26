@@ -243,7 +243,7 @@ if x == 5 {}`),
 
 func TestLexerString(t *testing.T) {
 	input := []byte(`
-"привет ${mod "${gen_name(pkg)}" } "
+"привет ${print "${a}" } "
 `)
 	lex := New(input, "main.fg", diagnostics.New(string(input)))
 
