@@ -1,4 +1,4 @@
-package recursive
+package parser
 
 import (
 	"testing"
@@ -11,7 +11,7 @@ func TestParserAst(t *testing.T) {
 
 	a := pars.Parse()
 	as := ast.Node{
-		Type:  ast.Module,
+		Type:  ast.ModuleDecl,
 		Data2: 0,
 		Data1: 1,
 	}

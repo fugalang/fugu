@@ -19,7 +19,7 @@ B
 
 B`)
 
-	a.Define(&b)
+	a.TextDefine(&b)
 
 	fmt.Println(string(b))
 }

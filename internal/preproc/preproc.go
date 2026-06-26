@@ -16,7 +16,7 @@ func New() *Arena {
 	}
 }
 
-func (a *Arena) Define(content *[]byte) {
+func (a *Arena) TextDefine(content *[]byte) {
 	lines := strings.Split(helper.BytesToString(*content), "\n")
 
 	var out []string
