@@ -3,6 +3,7 @@ package parser
 import (
 	"github.com/fugalang/fugu/internal/ast"
 	. "github.com/fugalang/fugu/internal/token"
+	"github.com/fugalang/fugu/pkg/helper"
 )
 
 const (
@@ -87,7 +88,7 @@ func (p *Parser) parsePrefix() int {
 			Data2: expr,
 		})
 
-	case INTEGER, FLOATING, CHARACTER:
+	case INTEGER, FLOATING, CHARACTER, IMAGINARY:
 		return p.parseLiteral()
 
 	case IDENTIFIER:
@@ -112,17 +113,67 @@ func (p *Parser) parseLiteral() int {
 	p.next()
 
 	switch tk.Kind {
+
 	case INTEGER:
-		i := p.addValue(
-			ast.Value{
-				Type: ast.Int,
-				I64: ,
-			}
-		)
+		i := p.addValue(ast.Value{
+			Type: ast.Int,
+			I64:  helper.StringIn64(string(tk.Literal(&p.lex.Input))),
+		})
+
+		return p.addNode(ast.Node{
+			Type:  ast.Literal,
+			Data1: i,
+		})
+
+	case FLOATING:
+		i := p.addValue(ast.Value{
+			Type: ast.Float,
+			F64:  helper.StringFloat64(string(tk.Literal(&p.lex.Input))),
+		})
+
+		return p.addNode(ast.Node{
+			Type:  ast.Literal,
+			Data1: i,
+		})
+
+	case IMAGINARY:
+		i := p.addValue(ast.Value{
+			Type: ast.Complex,
+			C128: helper.StringComplex128(string(tk.Literal(&p.lex.Input))),
+		})
+
+		return p.addNode(ast.Node{
+			Type:  ast.Literal,
+			Data1: i,
+		})
+
+	case CHARACTER:
+		r := []rune(string(tk.Literal(&p.lex.Input)))
+
+		i := p.addValue(ast.Value{
+			Type: ast.Char,
+			I64:  int64(r[0]),
+		})
+
+		return p.addNode(ast.Node{
+			Type:  ast.Literal,
+			Data1: i,
+		})
+
+	case RAW_STRING:
+		i := p.addValue(ast.Value{
+			Type: ast.String,
+			S8:   string(tk.Literal(&p.lex.Input)),
+		})
+
+		return p.addNode(ast.Node{
+			Type:  ast.Literal,
+			Data1: i,
+		})
 	}
+
 	return p.addNode(ast.Node{
-		Type:  ast.Literal,
-		Data1: int(tk.Kind),
+		Type: ast.Invalid,
 	})
 }
 
