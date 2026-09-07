@@ -26,15 +26,18 @@ pub enum Decl {
     Directive(Directive),
 }
 
+// let | const | mut (Patern): Vec<Type> = Vec<Expr>
+// let (a, b): (u8, u8) = (1, 1)
 #[derive(Debug, Clone, PartialEq)]
 pub struct Variable {
     pub pattern: Pattern,
-    pub ty: Option<Type>,
-    pub value: Option<Expr>,
+    pub ty: Option<Vec<Type>>,
+    pub value: Option<Vec<Expr>>,
     pub modifiers: Modifiers,
 }
 
 // type Name Types = expr defualt value
+// type UserName str = "def"
 #[derive(Debug, Clone, PartialEq)]
 pub struct TypeDeclaration {
     pub name: String,
