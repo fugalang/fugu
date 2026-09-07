@@ -1,3 +1,5 @@
+// Copyright (c) 2026 slavkiy
+
 use crate::{
     expression::Expr,
     modifiers::Modifiers,
@@ -8,7 +10,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Declaration {
+pub enum Decl {
     Module { name: Path },
     Package { name: Path, modifiers: Modifiers },
     Import { path: Path, alias: Option<String> },
@@ -24,19 +26,23 @@ pub enum Declaration {
     Directive(Directive),
 }
 
+// let | const | mut (Patern): Vec<Type> = Vec<Expr>
+// let (a, b): (u8, u8) = (1, 1)
 #[derive(Debug, Clone, PartialEq)]
 pub struct Variable {
     pub pattern: Pattern,
-    pub ty: Option<Type>,
-    pub value: Option<Expr>,
+    pub ty: Option<Vec<Type>>,
+    pub value: Option<Vec<Expr>>,
     pub modifiers: Modifiers,
 }
 
+// type Name Types = expr defualt value
+// type UserName str = "def"
 #[derive(Debug, Clone, PartialEq)]
 pub struct TypeDeclaration {
     pub name: String,
-    pub generics: Generics,
     pub ty: Type,
+    pub defualt: Box<Expr>,
     pub modifiers: Modifiers,
 }
 
@@ -46,13 +52,6 @@ pub struct Field {
     pub ty: Type,
     pub default: Option<Expr>,
     pub modifiers: Modifiers,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Parameter {
-    pub pattern: Pattern,
-    pub ty: Option<Type>,
-    pub default: Option<Expr>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -84,7 +83,8 @@ pub struct ImplDeclaration {
     pub target: Path,
     pub generics: Generics,
     pub fields: Vec<Field>,
-    pub body: Vec<Declaration>,
+    pub body: Vec<Decl>,
+    pub modifiers: Modifiers,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -95,6 +95,13 @@ pub struct Function {
     pub return_types: Vec<Type>,
     pub body: Block,
     pub modifiers: Modifiers,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Parameter {
+    pub pattern: Pattern,
+    pub ty: Option<Type>,
+    pub default: Option<Expr>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -1,4 +1,7 @@
+// Copyright (c) 2026 slavkiy
+
 use std::fmt;
+
 use token::Span;
 
 #[derive(Debug)]

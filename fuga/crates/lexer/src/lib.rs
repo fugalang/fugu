@@ -1,3 +1,5 @@
+// Copyright (c) 2026 slavkiy
+
 use token::{Position, Span, Token, TokenKind, Whitespace};
 
 #[derive(Debug)]

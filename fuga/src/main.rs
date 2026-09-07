@@ -1,3 +1,5 @@
+// Copyright (c) 2026 slavkiy
+
 fn main() {
     let mut lexer = lexer::Lexer::new("let x := 42");
 

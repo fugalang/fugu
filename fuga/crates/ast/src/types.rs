@@ -1,3 +1,5 @@
+// Copyright (c) 2026 slavkiy
+
 use crate::path::Path;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

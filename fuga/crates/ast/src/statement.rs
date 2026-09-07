@@ -1,12 +1,14 @@
+// Copyright (c) 2026 slavkiy
+
 use crate::{declaration::Variable, expression::Expr, pattern::Pattern};
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Block {
-    pub statements: Vec<Statement>,
+    pub statements: Vec<Stmt>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Statement {
+pub enum Stmt {
     Variable(Variable),
     Expression(Expr),
 
@@ -42,11 +44,11 @@ pub struct IfStatement {
     // if (let var := expr; var > 0) {}
     pub condition: Expr,
     pub then_branch: Block,
-    pub else_branch: Option<Box<Statement>>,
+    pub else_branch: Option<Box<Stmt>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeferStatement {
-    pub statement: Option<Box<Statement>>,
+    pub statement: Option<Box<Stmt>>,
     pub expression: Option<Expr>,
 }

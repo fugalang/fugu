@@ -1,3 +1,5 @@
+// Copyright (c) 2026 slavkiy
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Literal {
     Integer(i64),

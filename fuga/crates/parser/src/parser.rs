@@ -1,3 +1,5 @@
+// Copyright (c) 2026 slavkiy
+
 use crate::ParseError;
 use ast::Program;
 use lexer::Lexer;

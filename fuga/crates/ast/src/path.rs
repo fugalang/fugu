@@ -1,3 +1,5 @@
+// Copyright (c) 2026 slavkiy
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Path {
     pub segments: Vec<PathSegment>,

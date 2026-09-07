@@ -1,3 +1,5 @@
+// Copyright (c) 2026 slavkiy
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnaryOp {
     Neg,

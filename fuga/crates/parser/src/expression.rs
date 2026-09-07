@@ -1,3 +1,5 @@
+// Copyright (c) 2026 slavkiy
+
 use ast::{
     Expr, Literal, Path, PathSegment,
     operator::{AssignOp, BinaryOp, PostfixOp, UnaryOp},

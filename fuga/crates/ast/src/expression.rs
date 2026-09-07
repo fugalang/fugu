@@ -1,10 +1,13 @@
+// Copyright (c) 2026 slavkiy
+
 use crate::{
     declaration::Parameter,
     literal::Literal,
+    modifiers::Modifiers,
     operator::{AssignOp, BinaryOp, PostfixOp, UnaryOp},
     path::Path,
     pattern::Pattern,
-    statement::{Block, Statement},
+    statement::{Block, Stmt},
     types::{Generics, Type},
 };
 
@@ -31,7 +34,7 @@ pub enum Expr {
         op: PostfixOp,
     },
     Statement {
-        statement: Vec<Box<Statement>>,
+        statement: Vec<Box<Stmt>>,
         expression: Box<Expr>,
     },
     Call(Call),
@@ -44,6 +47,7 @@ pub struct Call {
     pub callee: Box<Expr>,
     pub args: Vec<Expr>,
     pub generics: Vec<Type>,
+    pub modifiers: Modifiers,
 }
 
 #[derive(Debug, Clone, PartialEq)]
